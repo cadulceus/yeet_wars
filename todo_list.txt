@@ -1,0 +1,4 @@
+syscall ideas:
+- locate nearest enemy thread IP
+- take ownership of all threads at target IP # makes vampires useful again
+- terminate a specified thread that you own (maybe via thread IDs?) # Makes it easier to recover from an opponent hijacking your threads, and also make it easier to change strategies
