@@ -32,6 +32,8 @@ RELATIVE          = 1   # direct
 REGISTER_DIRECT   = 2   # Register direct
 REGISTER_INDIRECT = 3   # Register indirect
 
+INSTRUCTION_WIDTH = 4
+
 OPCODES = {'NOPE': NOPE, 'YEET': YEET, 'YOINK': YOINK, 'SUB': SUB, 'MUL': MUL,
            'DIV': DIV, 'MOD': MOD, 'BOUNCE': BOUNCE, 'BOUNCEZ': BOUNCEZ,
            'BOUNCEN': BOUNCEN, 'BOUNCED': BOUNCED, 'ZOOP': ZOOP, 'SLT': SLT,
