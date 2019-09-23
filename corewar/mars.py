@@ -94,13 +94,22 @@ class MARS(object):
         instr.mcode = [self.core[(thread.pc + i) % len(self.core)] for i in range(4)]
         
         opc = instr.opcode
-        
+        if instr.a_mode = IMMEDIATE
+            l_operand = instr.a_number
+        elif instr.a_mode = RELATIVE
+            l_operand = self.core.trim(instr.a_number + thread.pc)
+        elif instr.a_mode = REGISTER_DIRECT
+            l_operand = thread.xd if thread.a_number == 0 else thread.dx
+        elif instr.a_mode = REGISTER_INDIRECT
+            l_operand = self.core[self.core.trim(thread.xd)] if thread.a_number == 0 \
+                        else self.core[self.core.trim(thread.dx)]
+                    
         if opc == NOPE:
             thread.pc += INSTRUCTION_WIDTH
             thread.pc = self.core.trim(thread.pc)
             thread_pool.append(thread)
         elif opc == YEET:
-            
+            if 
             
         #old crap below
         if ir.opcode == DAT:
