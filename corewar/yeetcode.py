@@ -122,6 +122,16 @@ class Instruction(object):
         return "<%s>" % self
 
 def validate_arg(arg, mode):
+    """
+    Validate an individual operand.
+    Called by parse_operands.
+
+    Example: parse_ysm('YEET %XD, 1337') would
+    call parse_operands('%XD') which would then call
+    validate_arg('%XD', 2). validate_arg in this case
+    would return 0 since that is the constant for the
+    XD register.
+    """
     if arg[0] in MODES:
         arg = arg[1:]
     if mode == REGISTER_INDIRECT and arg.endswith(']'):
@@ -147,6 +157,13 @@ def validate_arg(arg, mode):
         raise Exception('%s: Could not parse integer argument' % arg)
 
 def parse_operands(operands):
+    """
+    Parse the operands of a yeetcode instruction.
+    Everything after the opcode is the operands.
+    Called by parse_ysm.
+    Ex: parse_ysm('NOPE 1,2') would call
+    parse_operands('1,2')
+    """
     arg_a = None
     arg_b = None
     if not operands:
@@ -164,6 +181,11 @@ def parse_operands(operands):
     return [item for item in zip(args, modes)]
 
 def parse_ysm(instr):
+    """
+    Parse a single yeetcode instruction and return 
+    an instruction object. Ex: parse_ysm('NOPE 1,2')
+    returns an instruction object: <NOPE $     1, $     2>
+    """
     instr = instr.strip()
     parts = instr.split(None, 1)
     opcode = parts[0].upper()
