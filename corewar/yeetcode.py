@@ -128,7 +128,7 @@ def validate_arg(arg, mode):
 
     Example: parse_ysm('YEET %XD, 1337') would
     call parse_operands('%XD') which would then call
-    validate_arg('%XD', 2). validate_arg in this case
+    validate_arg('XD', 2). validate_arg in this case
     would return 0 since that is the constant for the
     XD register.
     """
