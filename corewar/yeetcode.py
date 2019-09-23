@@ -75,20 +75,6 @@ class Instruction(object):
         buf.append(self._b_number & 0xff)
         return buf
 
-    @mcode.setter
-    def mcode(self, bytearray):
-        if len(bytearray) != 4:
-            raise Exception("%s: Byte array must have length of 4" % bytearray)
-        for byte in bytearray:
-            if not isinstance(byte, int) or byte < 0 or byte > 255:
-                raise Exception("%s: Byte array must be ints" % bytearray)
-        instruction = bytearray[0]
-        self.opcode = instruction >> 4
-        self.a_mode = instruction >> 2 & 0xFF
-        self.b_mode = instruction & 0x3
-        self._a_number = bytearray[1]
-        self._b_number = bytearray[2] << 8 | bytearray[3]
-
     def core_binded(self, core):
         """Return a copy of this instruction binded to a Core.
         """
