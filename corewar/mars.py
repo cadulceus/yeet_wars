@@ -91,15 +91,18 @@ class MARS(object):
         thread = thread_pool.pop(0)
         # copy the current instruction to the instruction register
         instr = yeetcode.Instruction()
-        instr.mcode = decode(self.core[thread.pc])
-        trimmed_ip = instr.a_number
+        instr.mcode = [self.core[(thread.pc + i) % len(self.core)] for i in range(4)]
         
         opc = instr.opcode
         
-        if opc = NOPE:
+        if opc == NOPE:
             thread.pc += INSTRUCTION_WIDTH
+            thread.pc = self.core.trim(thread.pc)
             thread_pool.append(thread)
-
+        elif opc == YEET:
+            
+            
+        #old crap below
         if ir.opcode == DAT:
             # does not enqueue next instruction, therefore, killing the
             # process
