@@ -62,6 +62,18 @@ class Instruction(object):
         self._b_number = b_number if b_number else 0
 
         self.core = None
+    
+    @property
+    def mcode(self):
+        buf = []
+        instruction_mcode = self.opcode << 4
+        instruction_mcode |= self.a_mode << 2
+        instruction_mcode |= self.b_mode
+        buf.append(instruction_mcode)
+        buf.append(self._a_number & 0xff)
+        buf.append(self._b_number >> 8 & 0xff)
+        buf.append(self._b_number & 0xff)
+        return buf
 
     def core_binded(self, core):
         """Return a copy of this instruction binded to a Core.
@@ -145,8 +157,6 @@ def parse_operands(operands):
     modes = [MODES[arg[0]] if arg[0] in MODES else IMMEDIATE for arg in args]
     if len(args) != len(modes):
         raise Exception("%s: arg length and mode length mismatch" % operands)
-    print(args)
-    print(modes)
     try:
         args = [validate_arg(arg, mode) for (arg, mode) in zip(args, modes)]
     except Exception as e:
@@ -202,8 +212,9 @@ def parse(input, definitions={}):
             labels[line.strip(':')] = len(instructions)
         
         instruction = parse_ysm(line)
-        print(instruction)
-
+        instructions.append(instruction)
+    
+    return instructions
 
     # # evaluate start expression
     # if isinstance(warrior.start, str):
