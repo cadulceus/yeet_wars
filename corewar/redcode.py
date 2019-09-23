@@ -3,149 +3,63 @@
 from copy import copy
 import re
 
-__all__ = ['parse', 'DAT', 'MOV', 'ADD', 'SUB', 'MUL', 'DIV', 'MOD', 'JMP',
-           'JMZ', 'JMN', 'DJN', 'SPL', 'SLT', 'CMP', 'SEQ', 'SNE', 'NOP',
-           'M_A', 'M_B', 'M_AB', 'M_BA', 'M_F', 'M_X', 'M_I', 'IMMEDIATE',
-           'DIRECT', 'INDIRECT_B', 'PREDEC_B', 'POSTINC_B', 'INDIRECT_A',
-           'PREDEC_A', 'POSTINC_A', 'Instruction', 'Warrior']
+__all__ = ['parse', 'NOPE', 'YEET', 'YOINK', 'SUB', 'MUL', 'DIV', 'MOD', 'BOUNCE',
+           'BOUNCEZ', 'BOUNCEN', 'BOUNCED', 'ZOOP', 'SLT', 'SAMEZIES', 'NSAMEZIES', 'YEETCALL',
+           'IMMEDIATE', 'RELATIVE', 'REGISTER_DIRECT', 'REGISTER_INDIRECT', 'Instruction']
 
-DAT = 0     # terminate process
-MOV = 1     # move from A to B
-ADD = 2     # add A to B, store result in B
-SUB = 3     # subtract A from B, store result in B
-MUL = 4     # multiply A by B, store result in B
-DIV = 5     # divide B by A, store result in B if A <> 0, else terminate
-MOD = 6     # divide B by A, store remainder in B if A <> 0, else terminate
-JMP = 7     # transfer execution to A
-JMZ = 8     # transfer execution to A if B is zero
-JMN = 9     # transfer execution to A if B is non-zero
-DJN = 10    # decrement B, if B is non-zero, transfer execution to A
-SPL = 11    # split off process to A
-SLT = 12    # skip next instruction if A is less than B
-CMP = 13    # same as SEQ
-SEQ = 14    # Skip next instruction if A is equal to B
-SNE = 15    # Skip next instruction if A is not equal to B
-NOP = 16    # No operation
+NOPE      = 0     # No operation
+YEET      = 1     # move from A to B
+YOINK     = 2     # add A to B, store result in B
+SUB       = 3     # subtract A from B, store result in B
+MUL       = 4     # multiply A by B, store result in B
+DIV       = 5     # divide B by A, store result in B if A <> 0, else terminate
+MOD       = 6     # divide B by A, store remainder in B if A <> 0, else terminate
+BOUNCE    = 7     # transfer execution to A
+BOUNCEZ   = 8     # transfer execution to A if B is zero
+BOUNCEN   = 9     # transfer execution to A if B is non-zero
+BOUNCED   = 10    # decrement B, if B is non-zero, transfer execution to A
+ZOOP      = 11    # split off process to A
+SLT       = 12    # skip next instruction if A is less than B
+SAMEZIES  = 13    # Skip next instruction if A is equal to B
+NSAMEZIES = 14    # Skip next instruction if A is not equal to B
+YEETCALL  = 15    # System call
 
-# Instructions read and write A-fields.
-M_A = 0
+XD_REGISTER = 0
+DX_REGISTER = 1
 
-# Instructions read and write B-fields.
-M_B = 1
+IMMEDIATE         = 0   # immediate
+RELATIVE          = 1   # direct
+REGISTER_DIRECT   = 2   # Register direct
+REGISTER_INDIRECT = 3   # Register indirect
 
-# Instructions read the A-field of the A-instruction and the B-field of the
-# B-instruction and write to B-fields.
-M_AB = 2
+OPCODES = {'NOPE': NOPE, 'YEET': YEET, 'YOINK': YOINK, 'SUB': SUB, 'MUL': MUL,
+           'DIV': DIV, 'MOD': MOD, 'BOUNCE': BOUNCE, 'BOUNCEZ': BOUNCEZ,
+           'BOUNCEN': BOUNCEN, 'BOUNCED': BOUNCED, 'ZOOP': ZOOP, 'SLT': SLT,
+           'SAMEZIES': SAMEZIES, 'NSAMEZIES': NSAMEZIES, 'YEETCALL': YEETCALL}
 
-# Instructions read the B-field of the A-instruction and the A-field of the
-# B-instruction and write to A-fields.
-M_BA = 3
+MODES = {'$': IMMEDIATE, '#': RELATIVE,
+         '%': REGISTER_DIRECT, '[': REGISTER_INDIRECT}
 
-# Instructions read both A- and B-fields of the A and B-instruction and
-# write to both A- and B-fields (A to A and B to B).
-M_F = 4
+REGISTERS = {'XD': XD_REGISTER, 'DX': DX_REGISTER}
 
-# Instructions read both A- and B-fields of the A and B-instruction  and
-# write  to both A- and B-fields exchanging fields (A to B and B to A).
-M_X = 5
-
-# Instructions read and write entire instructions.
-M_I = 6
-
-IMMEDIATE = 0   # immediate
-DIRECT = 1      # direct
-INDIRECT_B = 2  # indirect using B-field
-PREDEC_B  = 3   # predecrement indirect using B-field
-POSTINC_B = 4   # postincrement indirect using B-field
-INDIRECT_A = 5  # indirect using A-field
-PREDEC_A = 6    # predecrement indirect using A-field
-POSTINC_A = 7   # postincrement indirect using A-field
-
-INSTRUCTION_REGEX = re.compile(r'([a-z]{3})'  # opcode
-                               r'(?:\s*\.\s*([abfxi]{1,2}))?' # optional modifier
-                               r'(?:\s*([#\$\*@\{<\}>])?\s*([^,$]+))?' # optional first value
-                               r'(?:\s*,\s*([#\$\*@\{<\}>])?\s*(.+))?$', # optional second value
-                               re.I)
-
-OPCODES = {'DAT': DAT, 'MOV': MOV, 'ADD': ADD, 'SUB': SUB, 'MUL': MUL,
-           'DIV': DIV, 'MOD': MOD, 'JMP': JMP, 'JMZ': JMZ, 'JMN': JMN,
-           'DJN': DJN, 'SPL': SPL, 'SLT': SLT, 'CMP': CMP, 'SEQ': SEQ,
-           'SNE': SNE, 'NOP': NOP}
-
-MODIFIERS = {'A': M_A, 'B': M_B, 'AB': M_AB, 'BA': M_BA, 'F': M_F, 'X': M_X,
-             'I': M_I}
-
-MODES = { '#': IMMEDIATE, '$': DIRECT, '@': INDIRECT_B, '<': PREDEC_B,
-          '>': POSTINC_B, '*': INDIRECT_A, '{': PREDEC_A, '}': POSTINC_A }
-
-# ICWS'88 to ICWS'94 Conversion
-# The default modifier for ICWS'88 emulation is determined according to the
-# table below.
-#        Opcode                             A-mode    B-mode    modifier
-DEFAULT_MODIFIERS = {
-        ('DAT', 'NOP')                 : {('#$@<>', '#$@<>'): 'F'},
-        ('MOV','CMP')                  : {('#'    , '#$@<>'): 'AB',
-                                          ('$@<>' , '#'    ): 'B' ,
-                                          ('$@<>' , '$@<>' ): 'I'},
-        ('ADD','SUB','MUL','DIV','MOD'): {('#'    , '#$@<>'): 'AB',
-                                          ('$@<>' , '#'    ): 'B' ,
-                                          ('$@<>' , '$@<>' ): 'F'},
-        ('SLT', 'SEQ', 'SNE')          : {('#'    , '#$@<>'): 'AB',
-                                          ('$@<>' , '#$@<>'): 'B'},
-        ('JMP','JMZ','JMN','DJN','SPL'): {('#$@<>', '#$@<>'): 'B'}
-    }
-
-# Transform the readable form above, into the internal representation
-DEFAULT_MODIFIERS = dict((tuple(OPCODES[opcode] for opcode in opcodes),
-                         dict(((tuple(MODES[a] for a in ab_modes[0]),
-                                tuple(MODES[b] for b in ab_modes[1])),
-                               MODIFIERS[modifier]) for ab_modes, modifier in ab_modes_modifiers.iteritems()))
-                         for opcodes, ab_modes_modifiers in DEFAULT_MODIFIERS.iteritems())
-
-class Warrior(object):
-    "An encapsulation of a Redcode Warrior, with instructions and meta-data"
-
-    def __init__(self, name='Unnamed', author='Anonymous', date=None,
-                 version=None, strategy=None, start=0):
-        self.name = name
-        self.author = author
-        self.date = date
-        self.version = version
-        self.strategy = strategy
-        self.start = start
-        self.instructions = []
-
-    def __iter__(self):
-        return iter(self.instructions)
-
-    def __len__(self):
-        return len(self.instructions)
-
-    def __repr__(self):
-        return "<Warrior name=%s %d instructions>" % (self.name, len(self.instructions))
+NARGS = {'NOPE': 0, 'BOUNCE': 1, 'ZOOP': 1, 'YEETCALL': 1}
 
 class Instruction(object):
     "An encapsulation of a Redcode instruction."
 
-    def __init__(self, opcode, modifier=None, a_mode=None, a_number=0,
+    def __init__(self, opcode=None, a_mode=None, a_number=0,
                  b_mode=None, b_number=0):
         self.opcode = OPCODES[opcode.upper()] if isinstance(opcode, str) else opcode
         if a_mode is not None:
             self.a_mode = MODES[a_mode] if isinstance(a_mode, str) else a_mode
         else:
-            self.a_mode = DIRECT
+            self.a_mode = IMMEDIATE
         if b_mode is not None:
             self.b_mode = MODES[b_mode] if isinstance(b_mode, str) else b_mode
         else:
-            self.b_mode = IMMEDIATE if self.opcode == DAT and a_number != None else DIRECT
+            self.b_mode = IMMEDIATE
         self._a_number = a_number if a_number else 0
         self._b_number = b_number if b_number else 0
-
-        # this should be last, to decide on the default modifier
-        if modifier is not None:
-            self.modifier = MODIFIERS[modifier.upper()] if isinstance(modifier, str) else modifier
-        else:
-            self.modifier = self.default_modifier()
 
         self.core = None
 
@@ -155,15 +69,6 @@ class Instruction(object):
         instruction = copy(self)
         instruction.core = core
         return instruction
-
-    def default_modifier(self):
-        for opcodes, modes_modifiers in DEFAULT_MODIFIERS.iteritems():
-            if self.opcode in opcodes:
-                for ab_modes, modifier in modes_modifiers.iteritems():
-                    a_modes, b_modes = ab_modes
-                    if self.a_mode in a_modes and self.b_mode in b_modes:
-                        return modifier
-        raise RuntimeError("Error getting default modifier")
 
     @property
     def a_number(self):
@@ -182,22 +87,20 @@ class Instruction(object):
         self._b_number = self.core.trim_signed(number) if self.core else number
 
     def __eq__(self, other):
-        return (self.opcode == other.opcode and self.modifier == other.modifier and
-                self.a_mode == other.a_mode and self.a_number == other.a_number and
-                self.b_mode == other.b_mode and self.b_number == other.b_number)
+        return (self.opcode == other.opcode and self.a_mode == other.a_mode and
+                self.a_number == other.a_number and self.b_mode == other.b_mode and 
+                self.b_number == other.b_number)
 
     def __ne__(self, other):
         return not self == other
 
     def __str__(self):
         # inverse lookup the instruction values
-        opcode   = next(key for key,value in OPCODES.iteritems() if value==self.opcode)
-        modifier = next(key for key,value in MODIFIERS.iteritems() if value==self.modifier)
-        a_mode   = next(key for key,value in MODES.iteritems() if value==self.a_mode)
-        b_mode   = next(key for key,value in MODES.iteritems() if value==self.b_mode)
+        opcode   = next(key for key,value in OPCODES.items() if value==self.opcode)
+        a_mode   = next(key for key,value in MODES.items() if value==self.a_mode)
+        b_mode   = next(key for key,value in MODES.items() if value==self.b_mode)
 
-        return "%s.%s %s %s, %s %s" % (opcode,
-                                       modifier.ljust(2),
+        return "%s %s %s, %s %s" % (opcode,
                                        a_mode,
                                        str(self.a_number).rjust(5),
                                        b_mode,
@@ -206,16 +109,78 @@ class Instruction(object):
     def __repr__(self):
         return "<%s>" % self
 
+def validate_arg(arg, mode):
+    if arg[0] in MODES:
+        arg = arg[1:]
+    if mode == REGISTER_INDIRECT and arg.endswith(']'):
+        arg = arg[:-1]
+    if mode == REGISTER_INDIRECT or mode == REGISTER_DIRECT:
+        arg = arg.upper()
+        if arg not in REGISTERS:
+            raise Exception('%s: Invalid arg for register direct or indirect mode. Must be XD or DX.' % arg)
+        return REGISTERS[arg]
+    if arg.lower().startswith('0x'):
+        arg = arg[2:]
+    try:
+        return int(arg)
+    except:
+        pass
+    try:
+        return int(arg, 16)
+    except:
+        raise Exception('%s: Could not parse integer argument' % arg)
+
+def parse_operands(operands):
+    arg_a = None
+    arg_b = None
+    if not operands:
+        return (arg_a, arg_b)
+    args = [arg.strip() for arg in operands.split(',', 1)]
+    if not args or not args[0]:
+        raise Exception("%s: Failed parsing operands" % operands)
+    modes = [MODES[arg[0]] if arg[0] in MODES else IMMEDIATE for arg in args]
+    if len(args) != len(modes):
+        raise Exception("%s: arg length and mode length mismatch" % operands)
+    print(args)
+    print(modes)
+    try:
+        args = [validate_arg(arg, mode) for (arg, mode) in zip(args, modes)]
+    except Exception as e:
+        raise e
+    return [item for item in zip(args, modes)]
+
+def parse_ysm(instr):
+    instr = instr.strip()
+    parts = instr.split(None, 1)
+    opcode = parts[0].upper()
+    args = []
+    if len(parts) > 1:
+        try:
+            args = parse_operands(parts[1])
+        except Exception as e:
+            raise e
+    required_args = NARGS[opcode] if opcode in NARGS else 2
+    if len(args) < required_args:
+        raise Exception('%s: not enough args for instruction' % instr)
+    a_arg = args[0][0] if args else None
+    b_arg = args[1][0] if args and len(args) > 1 else None
+
+    a_mode = args[0][1] if args else None
+    b_mode = args[1][1] if args and len(args) > 1 else None
+    return Instruction(
+        opcode=opcode,
+        a_mode=a_mode,
+        a_number=a_arg,
+        b_mode=b_mode,
+        b_number=b_arg
+    )
+
 def parse(input, definitions={}):
     """ Parse a Redcode code from a line iterator (input) returning a Warrior
         object."""
 
-    found_recode_info_comment = False
     labels = {}
-    code_address = 0
-
-    warrior = Warrior()
-    warrior.strategy = []
+    instructions = []
 
     # use a version of environment because we're going to add names to it
     environment = copy(definitions)
@@ -223,143 +188,35 @@ def parse(input, definitions={}):
     # first pass
     for n, line in enumerate(input):
         line = line.strip()
-        if line:
-            # process info comments
-            m = re.match(r'^;redcode\w*$', line, re.I)
-            if m:
-                if found_recode_info_comment:
-                    # stop reading, found second ;redcode
-                    break;
-                else:
-                    # first ;redcode ignore all input before
-                    warrior.instructions = []
-                    labels = {}
-                    environment = copy(definitions)
-                    code_address = 0
-                    found_recode_info_comment = True
-                continue
-
-            m = re.match(r'^;name\s+(.+)$', line, re.I)
-            if m:
-                warrior.name = m.group(1).strip()
-                continue
-
-            m = re.match(r'^;author\s+(.+)$', line, re.I)
-            if m:
-                warrior.author = m.group(1).strip()
-                continue
-
-            m = re.match(r'^;date\s+(.+)$', line, re.I)
-            if m:
-                warrior.date = m.group(1).strip()
-                continue
-
-            m = re.match(r'^;version\s+(.+)$', line, re.I)
-            if m:
-                warrior.version = m.group(1).strip()
-                continue
-
-            m = re.match(r'^;strat(?:egy)?\s+(.+)$', line, re.I)
-            if m:
-                warrior.strategy.append(m.group(1).strip())
-                continue
-
-            # Test if assert expression evaluates to true
-            m = re.match(r'^;assert\s+(.+)$', line, re.I)
-            if m:
-                if not eval(m.group(1), environment):
-                    raise AssertionError("Assertion failed: %s, line %d" % (line, n))
-                continue
-
-            # ignore other comments
-            m = re.match(r'^([^;]*)\s*;', line)
-            if m:
-                # rip off comment from the line
-                line = m.group(1).strip()
-                # if this is a comment line
-                if not line: continue
-
-            # Match ORG
-            m = re.match(r'^ORG\s+(.+)\s*$', line, re.I)
-            if m:
-                warrior.start = m.group(1)
-                continue
-
-            # Match END
-            m = re.match(r'^END(?:\s+([^\s]+))?$', line, re.I)
-            if m:
-                if m.group(1):
-                    warrior.start = m.group(1)
-                break # stop processing (end of redcode)
-
-            # Match EQU
-            m = re.match(r'^([a-z]\w*)\s+EQU\s+(.*)\s*$', line, re.I)
-            if m:
-                name, value = m.groups()
-                # evaluate EQU expression using previous EQU definitions,
-                # add result to a name variable in environment
-                environment[name] = eval(value, environment)
-                continue
-
-            # Keep matching the first word until it's no label anymore
-            while True:
-                m = re.match(r'^([a-z]\w*)\s+(.+)\s*$', line)
-                if m:
-                    label_candidate = m.group(1)
-                    if label_candidate.upper() not in OPCODES:
-                        labels[label_candidate] = code_address
-
-                        # strip label off and keep looking
-                        line = m.group(2)
-                        continue
-                # its an instruction, not label. proceed OR no match, probably
-                # a all-value-omitted instruction.
-                break
-
-            # At last, it should match an instruction
-            m = INSTRUCTION_REGEX.match(line)
-            if not m:
-                raise ValueError('Error at line %d: expected instruction in expression: "%s"' %
-                                 (n, line))
-            else:
-                opcode, modifier, a_mode, a_number, b_mode, b_number = m.groups()
-
-                if opcode.upper() not in OPCODES:
-                    raise ValueError('Invalid opcode: %s in line %d: "%s"' %
-                                     (opcode, n, line))
-                if modifier is not None and modifier.upper() not in MODIFIERS:
-                    raise ValueError('Invalid modifier: %s in line %d: "%s"' %
-                                     (modifier, n, line))
-
-                # add parts of instruction read. the fields should be parsed
-                # as an expression in the second pass, to expand labels
-                warrior.instructions.append(Instruction(opcode, modifier,
-                                                        a_mode, a_number,
-                                                        b_mode, b_number))
-
-            # increment code counting
-            code_address += 1
+        if not line:
+            continue
+        # process info comments
+        if line.startswith('#'):
+            continue
+        # process labels
+        if line.endswith(':'):
+            labels[line.strip(':')] = len(instructions)
+        
+        instruction = parse_ysm(line)
+        print(instruction)
 
 
-    # join strategy lines with line breaks
-    warrior.strategy = '\n'.join(warrior.strategy)
+    # # evaluate start expression
+    # if isinstance(warrior.start, str):
+    #     warrior.start = eval(warrior.start, environment, labels)
 
-    # evaluate start expression
-    if isinstance(warrior.start, str):
-        warrior.start = eval(warrior.start, environment, labels)
+    # # second pass
+    # for n, instruction in enumerate(warrior.instructions):
 
-    # second pass
-    for n, instruction in enumerate(warrior.instructions):
+    #     # create a dictionary of relative labels addresses to be used as a local
+    #     # eval environment
+    #     relative_labels = dict((name, address-n) for name, address in labels.iteritems())
 
-        # create a dictionary of relative labels addresses to be used as a local
-        # eval environment
-        relative_labels = dict((name, address-n) for name, address in labels.iteritems())
+    #     # evaluate instruction fields using global environment and labels
+    #     if isinstance(instruction.a_number, str):
+    #         instruction.a_number = eval(instruction.a_number, environment, relative_labels)
+    #     if isinstance(instruction.b_number, str):
+    #         instruction.b_number = eval(instruction.b_number, environment, relative_labels)
 
-        # evaluate instruction fields using global environment and labels
-        if isinstance(instruction.a_number, str):
-            instruction.a_number = eval(instruction.a_number, environment, relative_labels)
-        if isinstance(instruction.b_number, str):
-            instruction.b_number = eval(instruction.b_number, environment, relative_labels)
-
-    return warrior
+    # return warrior
 
