@@ -121,6 +121,10 @@ def validate_arg(arg, mode):
         return REGISTERS[arg]
     if arg.lower().startswith('0x'):
         arg = arg[2:]
+        try:
+            return int(arg, 16)
+        except:
+            pass
     try:
         return int(arg)
     except:
