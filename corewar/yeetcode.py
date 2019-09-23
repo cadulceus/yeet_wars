@@ -132,8 +132,6 @@ def validate_arg(arg, mode):
     would return 0 since that is the constant for the
     XD register.
     """
-    if arg[0] in MODES:
-        arg = arg[1:]
     if mode == REGISTER_INDIRECT and arg.endswith(']'):
         arg = arg[:-1]
     if mode == REGISTER_INDIRECT or mode == REGISTER_DIRECT:
@@ -175,7 +173,8 @@ def parse_operands(operands):
     if len(args) != len(modes):
         raise Exception("%s: arg length and mode length mismatch" % operands)
     try:
-        args = [validate_arg(arg, mode) for (arg, mode) in zip(args, modes)]
+        args = [validate_arg(arg[1:], mode) if arg[0] in MODES \
+                else validate_arg(arg, mode) for (arg, mode) in zip(args, modes)]
     except Exception as e:
         raise e
     return [item for item in zip(args, modes)]
