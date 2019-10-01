@@ -84,7 +84,64 @@ class MARS(object):
 
     def __getitem__(self, address):
         return self.core[address]
-
+    
+    def crash_thread():
+        # TODO: implement scoring for thread crashes
+        pass
+    
+    def get_a_value(instr):
+        if instr.a_mode = IMMEDIATE
+            l_val = instr.a_number
+        elif instr.a_mode = RELATIVE
+            l_val = self.core.trim(instr.a_number + thread.pc)
+        elif instr.a_mode = REGISTER_DIRECT
+            l_val = thread.xd if instr.a_number == 0 else thread.dx
+        elif instr.a_mode = REGISTER_INDIRECT
+            l_val = self.core[self.core.trim(thread.xd)] if instr.a_number == 0 \
+                        else self.core[self.core.trim(thread.dx)]
+        else
+            # TODO: figure out how we want to handle errors
+            return l_val
+                        
+    def get_b_value(instr):
+        if instr.a_mode == IMMEDIATE
+            r_val = instr.b_number
+        elif instr.a_mode == RELATIVE
+            r_val = self.core.trim(instr.b_number + thread.pc)
+        elif instr.a_mode == REGISTER_DIRECT
+            r_val = thread.xd if instr.b_number == 0 else thread.dx
+        elif instr.a_mode == REGISTER_INDIRECT
+            r_val = self.core[self.core.trim(thread.xd)] if instr.b_number == 0 \
+                        else self.core[self.core.trim(thread.dx)]
+        else
+            # TODO: figure out how we want to handle errors
+            return r_val
+        
+    def mov_template(instr, thread, val)
+        """Simulate a move instruction
+        """
+        if instr.b_mode == IMMEDIATE
+            # Move into absolute address
+            self.core[self.core.trim(instr.b_number)] = val
+        elif instr.b_mode == RELATIVE
+            # Move into a relative offset
+            self.core[self.core.trim(instr.b_number + thread.pc)] = val
+        elif instr.a_mode == REGISTER_DIRECT
+            # Move into a register
+            if instr.b_number == 0:
+                thread.xd = val
+            else:
+                thread.dx = val
+        elif instr.a_mode == REGISTER_INDIRECT
+            # Move into an absolute address held by a register
+            if instr.b_number == 0:
+                loc = thread.xd
+            else:
+                loc = thread.dx
+            self.core[self.core.trim(loc)] = val
+            
+    
+        
     def step(self):
         """Simulate one step.
         """
@@ -94,149 +151,40 @@ class MARS(object):
         instr.mcode = [self.core[(thread.pc + i) % len(self.core)] for i in range(4)]
         
         opc = instr.opcode
-        if instr.a_mode = IMMEDIATE
-            l_operand = instr.a_number
-        elif instr.a_mode = RELATIVE
-            l_operand = self.core.trim(instr.a_number + thread.pc)
-        elif instr.a_mode = REGISTER_DIRECT
-            l_operand = thread.xd if thread.a_number == 0 else thread.dx
-        elif instr.a_mode = REGISTER_INDIRECT
-            l_operand = self.core[self.core.trim(thread.xd)] if thread.a_number == 0 \
-                        else self.core[self.core.trim(thread.dx)]
-                    
-        if opc == NOPE:
-            thread.pc += INSTRUCTION_WIDTH
-            thread.pc = self.core.trim(thread.pc)
-            thread_pool.append(thread)
-        elif opc == YEET:
-            if 
-            
-        #old crap below
-        if ir.opcode == DAT:
-            # does not enqueue next instruction, therefore, killing the
-            # process
-            pass
-        elif ir.opcode == MOV:
-            if ir.modifier == M_A:
-                self.core[pc + wpb].a_number = ira.a_number
-                self.core_event(warrior, pc + rpa, EVENT_A_READ)
-                self.core_event(warrior, pc + wpb, EVENT_A_WRITE)
-            elif ir.modifier == M_B:
-                self.core[pc + wpb].b_number = ira.b_number
-                self.core_event(warrior, pc + rpa, EVENT_B_READ)
-                self.core_event(warrior, pc + wpb, EVENT_B_WRITE)
-            elif ir.modifier == M_AB:
-                self.core[pc + wpb].b_number = ira.a_number
-                self.core_event(warrior, pc + rpa, EVENT_A_READ)
-                self.core_event(warrior, pc + wpb, EVENT_B_WRITE)
-            elif ir.modifier == M_BA:
-                self.core[pc + wpb].a_number = ira.b_number
-                self.core_event(warrior, pc + rpa, EVENT_B_READ)
-                self.core_event(warrior, pc + wpb, EVENT_A_WRITE)
-            elif ir.modifier == M_F:
-                self.core[pc + wpb].a_number = ira.a_number
-                self.core[pc + wpb].b_number = ira.b_number
-                self.core_event(warrior, pc + rpa, EVENT_A_READ)
-                self.core_event(warrior, pc + rpa, EVENT_B_READ)
-                self.core_event(warrior, pc + wpb, EVENT_A_WRITE)
-                self.core_event(warrior, pc + wpb, EVENT_B_WRITE)
-            elif ir.modifier == M_X:
-                self.core[pc + wpb].b_number = ira.a_number
-                self.core[pc + wpb].a_number = ira.b_number
-                self.core_event(warrior, pc + rpa, EVENT_A_READ)
-                self.core_event(warrior, pc + rpa, EVENT_B_READ)
-                self.core_event(warrior, pc + wpb, EVENT_A_WRITE)
-                self.core_event(warrior, pc + wpb, EVENT_B_WRITE)
-            elif ir.modifier == M_I:
-                self.core[pc + wpb] = ira
-                self.core_event(warrior, pc + rpa, EVENT_I_READ)
-                self.core_event(warrior, pc + wpb, EVENT_I_WRITE)
-            else:
-                raise ValueError("Invalid modifier: %d" % ir.modifier)
 
-            # enqueue next instruction
-            self.enqueue(warrior, pc + 1)
-        elif ir.opcode == ADD:
-            do_arithmetic(operator.add)
-        elif ir.opcode == SUB:
-            do_arithmetic(operator.sub)
-        elif ir.opcode == MUL:
-            do_arithmetic(operator.mul)
-        elif ir.opcode == DIV:
-            do_arithmetic(operator.div)
-        elif ir.opcode == MOD:
-            do_arithmetic(operator.mod)
-        elif ir.opcode == JMP:
-            self.enqueue(warrior, pc + rpa)
-        elif ir.opcode == JMZ:
-            if ir.modifier == M_A or ir.modifier == M_BA:
-                self.enqueue(warrior, pc + (rpa if irb.a_number == 0 else 1))
-                self.core_event(warrior, pc + rpa, EVENT_A_READ)
-            elif ir.modifier == M_B or ir.modifier == M_AB:
-                self.enqueue(warrior, pc + (rpa if irb.b_number == 0 else 1))
-                self.core_event(warrior, pc + rpa, EVENT_B_READ)
-            elif ir.modifier in (M_F, M_X, M_I):
-                self.enqueue(warrior,
-                                pc + (rpa if irb.a_number == irb.b_number == 0 else 1))
-                self.core_event(warrior, pc + rpa, EVENT_A_READ)
-                self.core_event(warrior, pc + rpa, EVENT_B_READ)
-            else:
-                raise ValueError("Invalid modifier: %d" % ir.modifier)
-        elif ir.opcode == JMN:
-            if ir.modifier == M_A or ir.modifier == M_BA:
-                self.enqueue(warrior, pc + (rpa if irb.a_number != 0 else 1))
-                self.core_event(warrior, pc + rpa, EVENT_A_READ)
-            elif ir.modifier == M_B or ir.modifier == M_AB:
-                self.enqueue(warrior, pc + (rpa if irb.b_number != 0 else 1))
-                self.core_event(warrior, pc + rpa, EVENT_B_READ)
-            elif ir.modifier in (M_F, M_X, M_I):
-                self.enqueue(warrior,
-                                pc + (rpa if irb.a_number != 0 or
-                                            irb.b_number != 0 else 1))
-                self.core_event(warrior, pc + rpa, EVENT_A_READ)
-                self.core_event(warrior, pc + rpa, EVENT_B_READ)
-            else:
-                raise ValueError("Invalid modifier: %d" % ir.modifier)
-        elif ir.opcode == DJN:
-            if ir.modifier == M_A or ir.modifier == M_BA:
-                self.core[pc + wpb].a_number -= 1
-                irb.a_number -= 1
-                self.enqueue(warrior, pc + (rpa if irb.a_number != 0 else 1))
-                self.core_event(warrior, pc + rpa, EVENT_A_READ)
-                self.core_event(warrior, pc + rpa, EVENT_A_DEC)
-            elif ir.modifier == M_B or ir.modifier == M_AB:
-                self.core[pc + wpb].b_number -= 1
-                irb.b_number -= 1
-                self.enqueue(warrior, pc + (rpa if irb.b_number != 0 else 1))
-                self.core_event(warrior, pc + rpa, EVENT_B_READ)
-                self.core_event(warrior, pc + rpa, EVENT_B_DEC)
-            elif ir.modifier in (M_F, M_X, M_I):
-                self.core[pc + wpb].a_number -= 1
-                irb.a_number -= 1
-                self.core[pc + wpb].b_number -= 1
-                irb.b_number -= 1
-                self.enqueue(warrior,
-                                pc + (rpa if irb.a_number != 0 or
-                                            irb.b_number != 0 else 1))
-                self.core_event(warrior, pc + rpa, EVENT_A_READ)
-                self.core_event(warrior, pc + rpa, EVENT_B_READ)
-                self.core_event(warrior, pc + rpa, EVENT_A_DEC)
-                self.core_event(warrior, pc + rpa, EVENT_B_DEC)
-            else:
-                raise ValueError("Invalid modifier: %d" % ir.modifier)
-        elif ir.opcode == SPL:
-            self.enqueue(warrior, pc + 1)
-            self.enqueue(warrior, pc + rpa)
-        elif ir.opcode == SLT:
-            do_comparison(operator.lt)
-        elif ir.opcode == CMP or ir.opcode == SEQ:
-            do_comparison(operator.eq)
-        elif ir.opcode == SNE:
-            do_comparison(operator.ne)
-        elif ir.opcode == NOP:
-            self.enqueue(warrior, pc + 1)
-        else:
-            raise ValueError("Invalid opcode: %d" % ir.opcode)
+        if opc == NOPE:
+            # Not technically necessary, but might as well be explicit
+            pass
+        elif opc == YEET:
+            mov_template(instr, thread, get_a_value())
+            
+        elif opc == YOINK:
+            mov_template(instr, thread, get_b_value() + get_a_value())
+            
+        elif opc == SUB:
+            mov_template(instr, thread, get_b_value() - get_a_value())
+            
+        elif opc == MUL:
+            mov_template(instr, thread, get_b_value() * get_a_value())
+            
+        elif opc == DIV:
+            a = get_a_value()
+            if a == 0:
+                crash_thread()
+                return
+            mov_template(instr, thread, get_b_value() / a)
+                
+        elif opc == MOD:
+            a = get_a_value()
+            if a == 0:
+                crash_thread()
+                return
+            mov_template(instr, thread, get_b_value() % a)
+                
+        # Any instructions that altered control flow should have prematurely returned
+        thread.pc += INSTRUCTION_WIDTH
+        thread.pc = self.core.trim(thread.pc)
+        thread_pool.append(thread)
 
 if __name__ == "__main__":
     import argparse
