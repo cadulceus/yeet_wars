@@ -7,6 +7,7 @@ __all__ = ['parse', 'NOPE', 'YEET', 'YOINK', 'SUB', 'MUL', 'DIV', 'MOD', 'BOUNCE
            'BOUNCEZ', 'BOUNCEN', 'BOUNCED', 'ZOOP', 'SLT', 'SAMEZIES', 'NSAMEZIES', 'YEETCALL',
            'IMMEDIATE', 'RELATIVE', 'REGISTER_DIRECT', 'REGISTER_INDIRECT', 'Instruction']
 
+# The instruction type is encoded in the first nibble of the first byte of the instruction
 NOPE      = 0     # No operation
 YEET      = 1     # move from A to B
 YOINK     = 2     # add A to B, store result in B
@@ -14,19 +15,22 @@ SUB       = 3     # subtract A from B, store result in B
 MUL       = 4     # multiply A by B, store result in B
 DIV       = 5     # divide B by A, store result in B if A <> 0, else terminate
 MOD       = 6     # divide B by A, store remainder in B if A <> 0, else terminate
-BOUNCE    = 7     # transfer execution to A
-BOUNCEZ   = 8     # transfer execution to A if B is zero
-BOUNCEN   = 9     # transfer execution to A if B is non-zero
-BOUNCED   = 10    # decrement B, if B is non-zero, transfer execution to A
-ZOOP      = 11    # split off process to A
+BOUNCE    = 7     # transfer execution to B
+BOUNCEZ   = 8     # transfer execution to B if A is zero
+BOUNCEN   = 9     # transfer execution to B if A is non-zero
+BOUNCED   = 10    # decrement A, if A is non-zero, transfer execution to B
+ZOOP      = 11    # split off process to B
 SLT       = 12    # skip next instruction if A is less than B
 SAMEZIES  = 13    # Skip next instruction if A is equal to B
 NSAMEZIES = 14    # Skip next instruction if A is not equal to B
 YEETCALL  = 15    # System call
 
+# These values are encoded in the instruction as the a_number or b_number
 XD_REGISTER = 0
 DX_REGISTER = 1
 
+# The mode being used for the a_number and b_number are encoded in the last nibble of the
+# first byte of the instruction
 IMMEDIATE         = 0   # immediate
 RELATIVE          = 1   # direct
 REGISTER_DIRECT   = 2   # Register direct

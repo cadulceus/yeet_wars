@@ -118,7 +118,7 @@ class MARS(object):
             return r_val
         
     def mov_template(instr, thread, val)
-        """Simulate a move instruction
+        """Simulate a generic move instruction
         """
         if instr.b_mode == IMMEDIATE
             # Move into absolute address
@@ -140,7 +140,17 @@ class MARS(object):
                 loc = thread.dx
             self.core[self.core.trim(loc)] = val
             
-    
+    def jmp_template(thread, loc)
+        """Simulate a generic jump instruction
+        """
+        thread.pc = self.core.trim(loc)
+        self.thread_pool.append(thread)
+        
+    def syscall_handler(thread)
+        """Parse and simulate a syscall
+        """
+        # TODO: write code
+        pass
         
     def step(self):
         """Simulate one step.
@@ -155,6 +165,7 @@ class MARS(object):
         if opc == NOPE:
             # Not technically necessary, but might as well be explicit
             pass
+        
         elif opc == YEET:
             mov_template(instr, thread, get_a_value())
             
@@ -180,11 +191,50 @@ class MARS(object):
                 crash_thread()
                 return
             mov_template(instr, thread, get_b_value() % a)
+            
+        elif opc == BOUNCE:
+            jmp_template(thread, get_b_value())
+            
+        elif opc == BOUNCEZ:
+            if get_a_value() == 0:
+                jmp_template(thread, get_b_value())
+                return
+            
+        elif opc == BOUNCEN:
+            if get_a_value() != 0:
+                jmp_template(thread, get_b_value())
+                return
+            
+        elif opc == BOUNCED:
+            if get_a_value() != 0:
+                jmp_template(thread, get_b_value())
+                return
+            
+        elif opc == ZOOP:
+            # add one more to length of thread_pool to account for the current thread thats been popped
+            if len(thread_pool) + 1 < self.max_processes:
+                child = Thread(self.core.trim(get_b_value()), thread.xd, thread.dx, thread.owner)
+                self.thread_pool.append(child)
+                
+        elif opc == SLT:
+            if get_a_value() < get_b_value():
+                thread.pc += INSTRUCTION_WIDTH
+                
+        elif opc == SAMEZIES:
+            if get_a_value() == get_b_value():
+                thread.pc += INSTRUCTION_WIDTH
+                
+        elif opc == NSAMEZIES:
+            if get_a_value() != get_b_value():
+                thread.pc += INSTRUCTION_WIDTH
+                
+        elif opc == YEETCALL:
+            syscall_handler(thread)
                 
         # Any instructions that altered control flow should have prematurely returned
         thread.pc += INSTRUCTION_WIDTH
         thread.pc = self.core.trim(thread.pc)
-        thread_pool.append(thread)
+        self.thread_pool.append(thread)
 
 if __name__ == "__main__":
     import argparse
