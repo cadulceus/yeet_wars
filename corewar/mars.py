@@ -90,13 +90,13 @@ class MARS(object):
         pass
     
     def get_a_value(instr):
-        if instr.a_mode = IMMEDIATE
+        if instr.a_mode == IMMEDIATE
             l_val = instr.a_number
-        elif instr.a_mode = RELATIVE
+        elif instr.a_mode == RELATIVE
             l_val = self.core.trim(instr.a_number + thread.pc)
-        elif instr.a_mode = REGISTER_DIRECT
+        elif instr.a_mode == REGISTER_DIRECT
             l_val = thread.xd if instr.a_number == 0 else thread.dx
-        elif instr.a_mode = REGISTER_INDIRECT
+        elif instr.a_mode == REGISTER_INDIRECT
             l_val = self.core[self.core.trim(thread.xd)] if instr.a_number == 0 \
                         else self.core[self.core.trim(thread.dx)]
         else
@@ -145,7 +145,7 @@ class MARS(object):
     def step(self):
         """Simulate one step.
         """
-        thread = thread_pool.pop(0)
+        thread = self.thread_pool.pop(0)
         # copy the current instruction to the instruction register
         instr = yeetcode.Instruction()
         instr.mcode = [self.core[(thread.pc + i) % len(self.core)] for i in range(4)]
