@@ -2,8 +2,8 @@
 # coding: utf-8
 
 from copy import copy
-import operator
 from random import randint
+import operator, struct
 
 from core import Core, DEFAULT_INITIAL_INSTRUCTION
 from redcode import *
@@ -93,12 +93,14 @@ class MARS(object):
         if instr.a_mode == IMMEDIATE
             l_val = instr.a_number
         elif instr.a_mode == RELATIVE
-            l_val = self.core.trim(instr.a_number + thread.pc)
+            byte_arr = [self.core[self.core.trim(instr.a_number + thread.pc)] for i in range(2)]
+            l_val = byte_arr[0] * 256 + byte_arr[1]
         elif instr.a_mode == REGISTER_DIRECT
             l_val = thread.xd if instr.a_number == 0 else thread.dx
         elif instr.a_mode == REGISTER_INDIRECT
-            l_val = self.core[self.core.trim(thread.xd)] if instr.a_number == 0 \
-                        else self.core[self.core.trim(thread.dx)]
+            byte_arr = [self.core[self.core.trim(thread.xd)] for i in range(2)] if instr.a_number == 0 \
+                        else [self.core[self.core.trim(thread.dx)] for i in range(2)]
+            l_val = byte_arr[0] * 256 + byte_arr[1]
         else
             # TODO: figure out how we want to handle errors
             return l_val
@@ -107,12 +109,14 @@ class MARS(object):
         if instr.a_mode == IMMEDIATE
             r_val = instr.b_number
         elif instr.a_mode == RELATIVE
-            r_val = self.core.trim(instr.b_number + thread.pc)
+            byte_arr = [self.core[self.core.trim(instr.b_number + thread.pc)] for i in range(2)]
+            r_val = byte_arr[0] * 256 + byte_arr[1]
         elif instr.a_mode == REGISTER_DIRECT
             r_val = thread.xd if instr.b_number == 0 else thread.dx
         elif instr.a_mode == REGISTER_INDIRECT
-            r_val = self.core[self.core.trim(thread.xd)] if instr.b_number == 0 \
-                        else self.core[self.core.trim(thread.dx)]
+            byte_arr = [self.core[self.core.trim(thread.xd)] for i in range(2)] if instr.b_number == 0 \
+                        else [self.core[self.core.trim(thread.dx)] for i in range(2)]
+            l_val = byte_arr[0] * 256 + byte_arr[1]
         else
             # TODO: figure out how we want to handle errors
             return r_val
@@ -206,7 +210,26 @@ class MARS(object):
                 return
             
         elif opc == BOUNCED:
-            if get_a_value() != 0:
+            a = get_a_value() - 1
+            if instr.b_mode == IMMEDIATE
+                jmp_template(RHEWs, get_b_value())
+                return
+            elif instr.b_mode == RELATIVE
+                for ctr, byte in enumerate(struct.pack(">H", a)):
+                    self.core[self.core.trim(instr.a_number + thread.pc + ctr)] = ord(byte)
+            elif instr.a_mode == REGISTER_DIRECT
+                if instr.a_number == 0:
+                    thread.xd = a
+                else:
+                    thread.dx = a
+            elif instr.a_mode == REGISTER_INDIRECT
+                if instr.a_number == 0:
+                    for ctr, byte in enumerate(struct.pack(">H", a)):
+                        self.core[self.core.trim(thread.xd + thread.pc + ctr)] = ord(byte)
+                else:
+                    for ctr, byte in enumerate(struct.pack(">H", a)):
+                        self.core[self.core.trim(thread.dx + thread.pc + ctr)] = ord(byte)
+            if a != 0:
                 jmp_template(thread, get_b_value())
                 return
             
