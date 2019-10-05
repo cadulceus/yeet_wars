@@ -56,7 +56,7 @@ class MARS(object):
         if instr.a_mode == IMMEDIATE
             l_val = instr.a_number
         elif instr.a_mode == RELATIVE
-            l_val = self.core[instr.a_number + thread.pc : a_number + thread.pc + 2]
+            l_val = self.core[instr.a_number + thread.pc : instr.a_number + thread.pc + 2]
         elif instr.a_mode == REGISTER_DIRECT
             l_val = thread.xd if instr.a_number == 0 else thread.dx
         elif instr.a_mode == REGISTER_INDIRECT
@@ -70,14 +70,12 @@ class MARS(object):
         if instr.a_mode == IMMEDIATE
             r_val = instr.b_number
         elif instr.a_mode == RELATIVE
-            byte_arr = self.core[instr.b_number + thread.pc : b_number + thread.pc + 2]
-            r_val = byte_arr[0] * 256 + byte_arr[1]
+            r_val = self.core[instr.b_number + thread.pc : instr.b_number + thread.pc + 2]
         elif instr.a_mode == REGISTER_DIRECT
             r_val = thread.xd if instr.b_number == 0 else thread.dx
         elif instr.a_mode == REGISTER_INDIRECT 
-            byte_arr = self.core[thread.xd : thread.xd + 2] if instr.b_number == 0 \
-                        else self.core[thread.dx : thread.dx + 2] 
-            l_val = byte_arr[0] * 256 + byte_arr[1]
+            r_val = self.core[thread.xd : thread.xd + 2] if instr.a_number == 0 \
+                        else self.core[thread.dx : thread.dx + 2]
         else
             # TODO: figure out how we want to handle errors
             return r_val
