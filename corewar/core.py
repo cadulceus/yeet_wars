@@ -26,7 +26,7 @@ class Core(object):
         if start > stop:
             return []
         else:
-            return [self.bytes[start + i % self.size] for i in range(stop - start)]
+            return bytearray([self.bytes[start + i % self.size] for i in range(stop - start)])
 
     def __setitem__(self, address, value):
         if len(value) == 1:
