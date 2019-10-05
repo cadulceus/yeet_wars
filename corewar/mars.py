@@ -39,43 +39,6 @@ class MARS(object):
         self.max_processes = max_processes if max_processes else len(self.core)
         self.thread_pool = []
 
-    def reset(self, clear_instruction=DEFAULT_INITIAL_INSTRUCTION):
-        "Clears core and re-loads warriors."
-        self.core.clear(clear_instruction)
-        self.load_warriors()
-
-    def load_warriors(self, randomize=True):
-        "Loads its warriors to the memory with starting task queues"
-
-        # the space between warriors - equally spaced in the core
-        space = len(self.core) / len(self.warriors)
-
-        for n, warrior in enumerate(self.warriors):
-            # position is in the nth equally separated space plus a random
-            # shift up to where the last instruction is minimum separated from
-            # the first instruction of the next warrior
-            warrior_position = (n * space)
-
-            if randomize:
-                warrior_position += randint(0, max(0, space -
-                                                      len(warrior) -
-                                                      self.minimum_separation))
-
-            # add first and unique warrior task
-            warrior.task_queue = [self.core.trim(warrior_position + warrior.start)]
-
-            # copy warrior's instructions to the core
-            for i, instruction in enumerate(warrior.instructions):
-                self.core[warrior_position + i] = copy(instruction)
-                self.core_event(warrior, warrior_position + i, EVENT_I_WRITE)
-
-    def enqueue(self, warrior, address):
-        """Enqueue another process into the warrior's task queue. Only if it's
-           not already full.
-        """
-        if len(warrior.task_queue) < self.max_processes:
-            warrior.task_queue.append(self.core.trim(address))
-
     def __iter__(self):
         return iter(self.core)
 
@@ -93,14 +56,12 @@ class MARS(object):
         if instr.a_mode == IMMEDIATE
             l_val = instr.a_number
         elif instr.a_mode == RELATIVE
-            byte_arr = [self.core[self.core.trim(instr.a_number + thread.pc)] for i in range(2)]
-            l_val = byte_arr[0] * 256 + byte_arr[1]
+            l_val = self.core[instr.a_number + thread.pc : a_number + thread.pc + 2]
         elif instr.a_mode == REGISTER_DIRECT
             l_val = thread.xd if instr.a_number == 0 else thread.dx
         elif instr.a_mode == REGISTER_INDIRECT
-            byte_arr = [self.core[self.core.trim(thread.xd)] for i in range(2)] if instr.a_number == 0 \
-                        else [self.core[self.core.trim(thread.dx)] for i in range(2)]
-            l_val = byte_arr[0] * 256 + byte_arr[1]
+            l_val = self.core[thread.xd : thread.xd + 2] if instr.a_number == 0 \
+                        else self.core[thread.dx : thread.dx + 2]
         else
             # TODO: figure out how we want to handle errors
             return l_val
@@ -109,13 +70,13 @@ class MARS(object):
         if instr.a_mode == IMMEDIATE
             r_val = instr.b_number
         elif instr.a_mode == RELATIVE
-            byte_arr = [self.core[self.core.trim(instr.b_number + thread.pc)] for i in range(2)]
+            byte_arr = self.core[instr.b_number + thread.pc : b_number + thread.pc + 2]
             r_val = byte_arr[0] * 256 + byte_arr[1]
         elif instr.a_mode == REGISTER_DIRECT
             r_val = thread.xd if instr.b_number == 0 else thread.dx
-        elif instr.a_mode == REGISTER_INDIRECT
-            byte_arr = [self.core[self.core.trim(thread.xd)] for i in range(2)] if instr.b_number == 0 \
-                        else [self.core[self.core.trim(thread.dx)] for i in range(2)]
+        elif instr.a_mode == REGISTER_INDIRECT 
+            byte_arr = self.core[thread.xd : thread.xd + 2] if instr.b_number == 0 \
+                        else self.core[thread.dx : thread.dx + 2] 
             l_val = byte_arr[0] * 256 + byte_arr[1]
         else
             # TODO: figure out how we want to handle errors
@@ -126,10 +87,12 @@ class MARS(object):
         """
         if instr.b_mode == IMMEDIATE
             # Move into absolute address
-            self.core[self.core.trim(instr.b_number)] = val
+            self.core[instr.b_number] = val
+            self.core.owner[instr.b_number] = thread.owner
         elif instr.b_mode == RELATIVE
             # Move into a relative offset
-            self.core[self.core.trim(instr.b_number + thread.pc)] = val
+            self.core[instr.b_number + thread.pc] = val
+            self.core.owner[instr.b_number + thread.pc] = thread.owner
         elif instr.a_mode == REGISTER_DIRECT
             # Move into a register
             if instr.b_number == 0:
@@ -142,12 +105,13 @@ class MARS(object):
                 loc = thread.xd
             else:
                 loc = thread.dx
-            self.core[self.core.trim(loc)] = val
+            self.core[loc] = val
+            self.core.owner[loc] = thread.owner
             
     def jmp_template(thread, loc)
         """Simulate a generic jump instruction
         """
-        thread.pc = self.core.trim(loc)
+        thread.pc = loc % core.size
         self.thread_pool.append(thread)
         
     def syscall_handler(thread)
@@ -162,7 +126,7 @@ class MARS(object):
         thread = self.thread_pool.pop(0)
         # copy the current instruction to the instruction register
         instr = yeetcode.Instruction()
-        instr.mcode = [self.core[(thread.pc + i) % len(self.core)] for i in range(4)]
+        instr.mcode = [ord(byte) for byte in self.core[thread.pc : thread.pc + 4]]
         
         opc = instr.opcode
 
@@ -212,11 +176,10 @@ class MARS(object):
         elif opc == BOUNCED:
             a = get_a_value() - 1
             if instr.b_mode == IMMEDIATE
-                jmp_template(RHEWs, get_b_value())
+                jmp_template(thread, get_b_value())
                 return
             elif instr.b_mode == RELATIVE
-                for ctr, byte in enumerate(struct.pack(">H", a)):
-                    self.core[self.core.trim(instr.a_number + thread.pc + ctr)] = ord(byte)
+                self.core[instr.a_number + thread.pc] = a
             elif instr.a_mode == REGISTER_DIRECT
                 if instr.a_number == 0:
                     thread.xd = a
@@ -224,11 +187,9 @@ class MARS(object):
                     thread.dx = a
             elif instr.a_mode == REGISTER_INDIRECT
                 if instr.a_number == 0:
-                    for ctr, byte in enumerate(struct.pack(">H", a)):
-                        self.core[self.core.trim(thread.xd + thread.pc + ctr)] = ord(byte)
+                    self.core[thread.xd + thread.pc] = a
                 else:
-                    for ctr, byte in enumerate(struct.pack(">H", a)):
-                        self.core[self.core.trim(thread.dx + thread.pc + ctr)] = ord(byte)
+                    self.core[thread.dx + thread.pc] = a
             if a != 0:
                 jmp_template(thread, get_b_value())
                 return
@@ -236,7 +197,7 @@ class MARS(object):
         elif opc == ZOOP:
             # add one more to length of thread_pool to account for the current thread thats been popped
             if len(thread_pool) + 1 < self.max_processes:
-                child = Thread(self.core.trim(get_b_value()), thread.xd, thread.dx, thread.owner)
+                child = Thread(get_b_value() % self.core.size, thread.xd, thread.dx, thread.owner)
                 self.thread_pool.append(child)
                 
         elif opc == SLT:
@@ -255,84 +216,5 @@ class MARS(object):
             syscall_handler(thread)
                 
         # Any instructions that altered control flow should have prematurely returned
-        thread.pc += INSTRUCTION_WIDTH
-        thread.pc = self.core.trim(thread.pc)
+        thread.pc = (thread.pc + INSTRUCTION_WIDTH) % self.core.size
         self.thread_pool.append(thread)
-
-if __name__ == "__main__":
-    import argparse
-    import redcode
-
-    parser = argparse.ArgumentParser(description='MARS (Memory Array Redcode Simulator)')
-    parser.add_argument('--rounds', '-r', metavar='ROUNDS', type=int, nargs='?',
-                        default=1, help='Rounds to play')
-    parser.add_argument('--size', '-s', metavar='CORESIZE', type=int, nargs='?',
-                        default=8000, help='The core size')
-    parser.add_argument('--cycles', '-c', metavar='CYCLES', type=int, nargs='?',
-                        default=80000, help='Cycles until tie')
-    parser.add_argument('--processes', '-p', metavar='MAXPROCESSES', type=int, nargs='?',
-                        default=8000, help='Max processes')
-    parser.add_argument('--length', '-l', metavar='MAXLENGTH', type=int, nargs='?',
-                        default=100, help='Max warrior length')
-    parser.add_argument('--distance', '-d', metavar='MINDISTANCE', type=int, nargs='?',
-                        default=100, help='Minimum warrior distance')
-    parser.add_argument('warriors', metavar='WARRIOR', type=file, nargs='+',
-                        help='Warrior redcode filename')
-
-    args = parser.parse_args()
-
-    # build environment
-    environment = {'CORESIZE': args.size,
-                   'CYCLES': args.cycles,
-                   'ROUNDS': args.rounds,
-                   'MAXPROCESSES': args.processes,
-                   'MAXLENGTH': args.length,
-                   'MINDISTANCE': args.distance}
-
-    # assemble warriors
-    warriors = [redcode.parse(file, environment) for file in args.warriors]
-
-    # initialize wins, losses and ties for each warrior
-    for warrior in warriors:
-        warrior.wins = warrior.ties = warrior.losses = 0
-
-    # for each round
-    for i in xrange(args.rounds):
-
-        # create new simulation
-        simulation = MARS(warriors=warriors,
-                          minimum_separation = args.distance,
-                          max_processes = args.processes)
-
-        active_warrior_to_stop = 1 if len(warriors) >= 2 else 0
-
-        for c in xrange(args.cycles):
-            simulation.step()
-
-            # if there's only one left, or are all dead, then stop simulation
-            if sum(1 if warrior.task_queue else 0 for warrior in warriors) <= active_warrior_to_stop:
-                for warrior in warriors:
-                    if warrior.task_queue:
-                        warrior.wins += 1
-                    else:
-                        warrior.losses += 1
-                break
-        else:
-            # running until max cycles: tie
-            for warrior in warriors:
-                if warrior.task_queue:
-                    warrior.ties += 1
-                else:
-                    warrior.losses += 1
-
-    # print results
-    print "Results: (%d rounds)" % args.rounds
-    print "%s %s %s %s" % ("Warrior (Author)".ljust(40), "wins".rjust(5),
-                           "ties".rjust(5), "losses".rjust(5))
-    for warrior in warriors:
-        print "%s %s %s %s" % (("%s (%s)" % (warrior.name, warrior.author)).ljust(40),
-                               str(warrior.wins).rjust(5),
-                               str(warrior.ties).rjust(5),
-                               str(warrior.losses).rjust(5))
-
-
