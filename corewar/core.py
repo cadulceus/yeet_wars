@@ -1,66 +1,42 @@
 # coding: utf-8
 
 from copy import copy
-from redcode import Instruction
 
-__all__ = ['DEFAULT_INITIAL_INSTRUCTION', 'Core']
-
-DEFAULT_INITIAL_INSTRUCTION = Instruction('DAT', 'F', '$', 0, '$', 0)
+__all__ = ['Core']
 
 class Core(object):
     """The Core itself. An array-like object with a bunch of instructions and
        warriors, and tasks.
     """
 
-    def __init__(self, initial_instruction=DEFAULT_INITIAL_INSTRUCTION,
-                 size=8000, read_limit=None, write_limit=None):
+    def __init__(self, initial_value='\x00', size=8000):
+        self.owner = [-1 for i in range(size)]
         self.size = size
-        self.write_limit = write_limit if write_limit else self.size
-        self.read_limit = read_limit if read_limit else self.size
-        self.clear()
+        self.clear(initial_value)
 
-    def clear(self, instruction=DEFAULT_INITIAL_INSTRUCTION):
-        """Writes the same instruction thorough the entire core.
+    def clear(self, byte):
+        """Writes the same byte thorough the entire core.
         """
-        self.instructions = [instruction.core_binded(self) for i in xrange(self.size)]
-
-    def trim_write(self, address):
-        "Return the trimmed address to write, considering the write limit."
-        return self._trim(address, self.write_limit)
-
-    def trim_read(self, address):
-        "Return the trimmed address to read, considering the read limit."
-        return self._trim(address, self.read_limit)
-
-    def trim(self, value):
-        "Return a trimmed value to the bounds of the core size"
-        return value % len(self)
-
-    def trim_signed(self, value):
-        "Return a trimmed value to the bounds of -core size to +core size"
-        return value % len(self) if abs(value) > len(self) else value
-
-    def _trim(self, address, limit):
-        "Trims an address in the core, given a limit."
-        result = address % limit
-        if result > limit/2:
-            result += self.size - limit
-        return result
-
+        self.bytes = bytearray(byte)*self.size
+        
     def __getitem__(self, address):
-        return self.instructions[address % self.size]
+        return self.bytes[address % self.size]
 
     def __getslice__(self, start, stop):
         if start > stop:
-            return self.instructions[start:] + self.instructions[:stop]
+            return []
         else:
-            return self.instructions[start:stop]
+            return [self.bytes[start + i % self.size] for i in range(stop - start)]
 
-    def __setitem__(self, address, instruction):
-        self.instructions[address % self.size] = instruction
+    def __setitem__(self, address, value):
+        if len(value) == 1:
+            self.bytes[address % self.size] = value
+        else:
+            for ctr, byte in enumerate(value):
+                self.bytes[address + ctr % self.size] = byte
 
     def __iter__(self):
-        return iter(self.instructions)
+        return iter(self.bytes)
 
     def __len__(self):
         return self.size
@@ -68,3 +44,5 @@ class Core(object):
     def __repr__(self):
         return "<Core size=%d>" % self.size
 
+if __name__ == "__main__":
+    a = Core()
