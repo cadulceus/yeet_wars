@@ -81,7 +81,7 @@ class Instruction(object):
         buf.append(self._a_number & 0xff)
         buf.append(self._b_number >> 8 & 0xff)
         buf.append(self._b_number & 0xff)
-        return buf
+        return bytearray(buf)
 
     @mcode.setter
     def mcode(self, bytearray):
@@ -256,7 +256,6 @@ def parse(input, definitions={}):
         
         instruction = parse_ysm(line)
         instructions.append(instruction)
-    
     return instructions
 
     # # evaluate start expression

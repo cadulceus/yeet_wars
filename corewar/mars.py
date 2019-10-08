@@ -54,60 +54,94 @@ class MARS(object):
     
     def get_a_value(self, instr, thread):
         if instr.a_mode == IMMEDIATE:
-            l_val = instr.a_number
+            l_val = bytearray(instr.a_number)
         elif instr.a_mode == RELATIVE:
             l_val = self.core[instr.a_number + thread.pc : instr.a_number + thread.pc + WORD_SIZE]
         elif instr.a_mode == REGISTER_DIRECT:
-            l_val = thread.xd if instr.a_number == 0 else thread.dx
+            l_val = (thread.xd if instr.a_number == 0 else thread.dx)
         elif instr.a_mode == REGISTER_INDIRECT:
-            l_val = self.core[thread.xd : thread.xd + WORD_SIZE] if instr.a_number == 0 \
-                        else self.core[thread.dx : thread.dx + WORD_SIZE]
+            loc = struct.unpack('>I', thread.xd)[0] if instr.a_number == 0 else struct.unpack('>I', thread.dx)[0]
+            l_val = self.core[loc : loc + WORD_SIZE]
         else:
-            print "returning none"
+            print "shits fucked yo"
+            # TODO: figure out how we want to handle errors
+            return None
+        return l_val
+                        
+    def get_a_int(self, instr, thread):
+        if instr.a_mode == IMMEDIATE:
+            l_val = instr.a_number
+        elif instr.a_mode == RELATIVE:
+            l_val = struct.unpack('>I', self.core[instr.a_number + thread.pc : instr.a_number + thread.pc + WORD_SIZE])[0]
+        elif instr.a_mode == REGISTER_DIRECT:
+            l_val = (struct.unpack('>I', thread.xd)[0] if instr.a_number == 0 else struct.unpack('>I', thread.dx)[0]
+        elif instr.a_mode == REGISTER_INDIRECT:
+            loc = struct.unpack('>I', thread.xd)[0] if instr.a_number == 0 else struct.unpack('>I', thread.dx)[0]
+            l_val = struct.unpack('>I', self.core[loc : loc + WORD_SIZE])
+        else:
+            print "shits fucked yo"
             # TODO: figure out how we want to handle errors
             return None
         return l_val
                         
     def get_b_value(self, instr, thread):
         if instr.a_mode == IMMEDIATE:
-            r_val = instr.b_number
+            r_val = struct.pack('>H', instr.b_number)
         elif instr.a_mode == RELATIVE:
             r_val = self.core[instr.b_number + thread.pc : instr.b_number + thread.pc + WORD_SIZE]
         elif instr.a_mode == REGISTER_DIRECT:
-            r_val = thread.xd if instr.b_number == 0 else thread.dx
-        elif instr.a_mode == REGISTER_INDIRECT :
-            r_val = self.core[thread.xd : thread.xd + WORD_SIZE] if instr.a_number == 0 \
-                        else self.core[thread.dx : thread.dx + WORD_SIZE]
+            r_val = struct.thread.xd if instr.b_number == 0 else thread.dx
+        elif instr.a_mode == REGISTER_INDIRECT:
+            loc = struct.unpack('>I', thread.xd)[0] if instr.b_number == 0 else struct.unpack('>I', thread.dx)[0]
+            r_val = self.core[loc : loc + WORD_SIZE]
         else:
-            print "returning none"
+            print "shits fucked yo"
             # TODO: figure out how we want to handle errors
             return None
         return r_val
+                        
+    def get_b_int(self, instr, thread):
+        if instr.b_mode == IMMEDIATE:
+            l_val = instr.b_number
+        elif instr.b_mode == RELATIVE:
+            l_val = struct.unpack('>I', self.core[instr.b_number + thread.pc : instr.b_number + thread.pc + WORD_SIZE])[0]
+        elif instr.b_mode == REGISTER_DIRECT:
+            l_val = struct.unpack('>I', thread.xd)[0] if instr.b_number == 0 else struct.unpack('>I', thread.dx)[0]
+        elif instr.a_mode == REGISTER_INDIRECT:
+            loc = struct.unpack('>I', thread.xd)[0] if instr.b_number == 0 else struct.unpack('>I', thread.dx)[0]
+            l_val = struct.unpack('>I', self.core[loc : loc + WORD_SIZE])
+        else:
+            print "shits fucked yo"
+            # TODO: figure out how we want to handle errors
+            return None
+        return l_val
         
-    def mov_template(self, instr, thread, val):
+    def mov_template(self, instr, thread, op):
         """Simulate a generic move instruction
         """
+        l_val = self.get_a_int = self.get_a_int(instr, thread)
+        r_val = self.get_b_int(instr, thread)
         if instr.b_mode == IMMEDIATE:
             # Move into absolute address
-            self.core[instr.b_number] = val
+            self.core[instr.b_number] = op(l_val, r_val)
             self.core.owner[instr.b_number] = thread.owner
         elif instr.b_mode == RELATIVE:
             # Move into a relative offset
             self.core[instr.b_number + thread.pc] = val
             self.core.owner[instr.b_number + thread.pc] = thread.owner
-        elif instr.a_mode == REGISTER_DIRECT:
+        elif instr.b_mode == REGISTER_DIRECT:
             # Move into a register
             if instr.b_number == 0:
                 thread.xd = val
             else:
                 thread.dx = val
-        elif instr.a_mode == REGISTER_INDIRECT:
+        elif instr.b_mode == REGISTER_INDIRECT:
             # Move into an absolute address held by a register
             if instr.b_number == 0:
                 loc = thread.xd
             else:
                 loc = thread.dx
-            self.core[loc] = val
+            self.core[loc] = chr(val)
             self.core.owner[loc] = thread.owner
             
     def jmp_template(self, thread, loc):
@@ -128,7 +162,6 @@ class MARS(object):
         thread = self.thread_pool.pop(0)
         # copy the current instruction to the instruction register
         instr = Instruction()
-        print self.core[thread.pc : thread.pc + 4].decode()
         instr.mcode = [byte for byte in self.core[thread.pc : thread.pc + 4]]
         
         opc = instr.opcode
@@ -138,13 +171,13 @@ class MARS(object):
             pass
         
         elif opc == YEET:
-            self.mov_template(instr, thread, self.get_a_value(instr, thread))
+            self.mov_template(instr, thread, lambda x, y : x)
             
         elif opc == YOINK:
-            self.mov_template(instr, thread, self.get_b_value(instr, thread) + self.get_a_value(instr, thread))
+            self.mov_template(instr, thread, lambda x, y : y + x)
             
         elif opc == SUB:
-            self.mov_template(instr, thread, self.get_b_value(instr, thread) - self.get_a_value(instr, thread))
+            self.mov_template(instr, thread, lambda x, y : y - x)
             
         elif opc == MUL:
             self.mov_template(instr, thread, self.get_b_value(instr, thread) * self.get_a_value(instr, thread))
