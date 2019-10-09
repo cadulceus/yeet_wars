@@ -58,9 +58,9 @@ class MARS(object):
         elif instr.a_mode == RELATIVE:
             l_val = self.core[instr.a_number + thread.pc : instr.a_number + thread.pc + WORD_SIZE]
         elif instr.a_mode == REGISTER_DIRECT:
-            l_val = (thread.xd if instr.a_number == 0 else thread.dx)
+            l_val = thread.xd_bytes if instr.a_number == 0 else thread.dx_bytes
         elif instr.a_mode == REGISTER_INDIRECT:
-            loc = struct.unpack('>I', thread.xd)[0] if instr.a_number == 0 else struct.unpack('>I', thread.dx)[0]
+            loc = struct.unpack('>I', thread.xd_bytes)[0] if instr.a_number == 0 else struct.unpack('>I', thread.dx_bytes)[0]
             l_val = self.core[loc : loc + WORD_SIZE]
         else:
             print "shits fucked yo"
@@ -74,10 +74,10 @@ class MARS(object):
         elif instr.a_mode == RELATIVE:
             l_val = struct.unpack('>I', self.core[instr.a_number + thread.pc : instr.a_number + thread.pc + WORD_SIZE])[0]
         elif instr.a_mode == REGISTER_DIRECT:
-            l_val = (struct.unpack('>I', thread.xd)[0] if instr.a_number == 0 else struct.unpack('>I', thread.dx)[0]
+            l_val = thread.xd if instr.a_number == 0 else thread.dx
         elif instr.a_mode == REGISTER_INDIRECT:
-            loc = struct.unpack('>I', thread.xd)[0] if instr.a_number == 0 else struct.unpack('>I', thread.dx)[0]
-            l_val = struct.unpack('>I', self.core[loc : loc + WORD_SIZE])
+            loc = thread.dx if instr.a_number == 0 else thread.dx
+            l_val = struct.unpack('>I', self.core[loc : loc + WORD_SIZE])[0]
         else:
             print "shits fucked yo"
             # TODO: figure out how we want to handle errors
@@ -90,9 +90,9 @@ class MARS(object):
         elif instr.a_mode == RELATIVE:
             r_val = self.core[instr.b_number + thread.pc : instr.b_number + thread.pc + WORD_SIZE]
         elif instr.a_mode == REGISTER_DIRECT:
-            r_val = struct.thread.xd if instr.b_number == 0 else thread.dx
+            r_val = thread.xd_bytes if instr.b_number == 0 else thread.dx_bytes
         elif instr.a_mode == REGISTER_INDIRECT:
-            loc = struct.unpack('>I', thread.xd)[0] if instr.b_number == 0 else struct.unpack('>I', thread.dx)[0]
+            loc = struct.unpack('>I', thread.xd_bytes)[0] if instr.b_number == 0 else struct.unpack('>I', thread.dx_bytes)[0]
             r_val = self.core[loc : loc + WORD_SIZE]
         else:
             print "shits fucked yo"
@@ -102,46 +102,42 @@ class MARS(object):
                         
     def get_b_int(self, instr, thread):
         if instr.b_mode == IMMEDIATE:
-            l_val = instr.b_number
+            r_val = instr.b_number
         elif instr.b_mode == RELATIVE:
-            l_val = struct.unpack('>I', self.core[instr.b_number + thread.pc : instr.b_number + thread.pc + WORD_SIZE])[0]
+            r_val = struct.unpack('>I', self.core[instr.b_number + thread.pc : instr.b_number + thread.pc + WORD_SIZE])[0]
         elif instr.b_mode == REGISTER_DIRECT:
-            l_val = struct.unpack('>I', thread.xd)[0] if instr.b_number == 0 else struct.unpack('>I', thread.dx)[0]
-        elif instr.a_mode == REGISTER_INDIRECT:
-            loc = struct.unpack('>I', thread.xd)[0] if instr.b_number == 0 else struct.unpack('>I', thread.dx)[0]
-            l_val = struct.unpack('>I', self.core[loc : loc + WORD_SIZE])
+            r_val = thread.xd if instr.a_number == 0 else thread.dx
+        elif instr.b_mode == REGISTER_INDIRECT:
+            loc = thread.dx if instr.b_number == 0 else thread.dx
+            r_val = struct.unpack('>I', self.core[loc : loc + WORD_SIZE])[0]
         else:
             print "shits fucked yo"
             # TODO: figure out how we want to handle errors
             return None
-        return l_val
+        return r_val
         
     def mov_template(self, instr, thread, op):
         """Simulate a generic move instruction
         """
-        l_val = self.get_a_int = self.get_a_int(instr, thread)
-        r_val = self.get_b_int(instr, thread)
+        l_int = self.get_a_int(instr, thread)
+        r_int = self.get_b_int(instr, thread)
+        l_val = self.get_a_value(instr, thread)
+        struct_type = '>I' if len(l_val) == 4 else '>B'
         if instr.b_mode == IMMEDIATE:
             # Move into absolute address
-            self.core[instr.b_number] = op(l_val, r_val)
-            self.core.owner[instr.b_number] = thread.owner
+            self.core[r_int] = struct.pack(struct_type, op(l_int, self.core[r_int:r_int + 4]))
+            self.core.owner[r_int] = thread.owner
         elif instr.b_mode == RELATIVE:
             # Move into a relative offset
-            self.core[instr.b_number + thread.pc] = val
+            self.core[instr.b_number + thread.pc] = struct.pack(struct_type, op(l_int, r_int))
             self.core.owner[instr.b_number + thread.pc] = thread.owner
         elif instr.b_mode == REGISTER_DIRECT:
             # Move into a register
-            if instr.b_number == 0:
-                thread.xd = val
-            else:
-                thread.dx = val
+                thread.dx = struct.pack('>I', op(l_int, r_int))
         elif instr.b_mode == REGISTER_INDIRECT:
             # Move into an absolute address held by a register
-            if instr.b_number == 0:
-                loc = thread.xd
-            else:
-                loc = thread.dx
-            self.core[loc] = chr(val)
+            loc = thread.xd if thread.a_number == 0 else thread.dx
+            self.core[loc] = struct.pack(struct_type, op(l_int, r_int))
             self.core.owner[loc] = thread.owner
             
     def jmp_template(self, thread, loc):
