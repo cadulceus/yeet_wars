@@ -5,7 +5,8 @@ import re
 
 __all__ = ['parse', 'NOPE', 'YEET', 'YOINK', 'SUB', 'MUL', 'DIV', 'MOD', 'BOUNCE',
            'BOUNCEZ', 'BOUNCEN', 'BOUNCED', 'ZOOP', 'SLT', 'SAMEZIES', 'NSAMEZIES', 'YEETCALL',
-           'IMMEDIATE', 'RELATIVE', 'REGISTER_DIRECT', 'REGISTER_INDIRECT', 'Instruction']
+           'IMMEDIATE', 'RELATIVE', 'REGISTER_DIRECT', 'REGISTER_INDIRECT', 'Instruction',
+           'INSTRUCTION_WIDTH', 'WORD_SIZE', 'WORD_MAX', 'BYTE_MAX']
 
 # The instruction type is encoded in the first nibble of the first byte of the instruction
 NOPE      = 0     # No operation
@@ -37,6 +38,9 @@ REGISTER_DIRECT   = 2   # Register direct
 REGISTER_INDIRECT = 3   # Register indirect
 
 INSTRUCTION_WIDTH = 4
+WORD_SIZE = 4
+BYTE_MAX = 256
+WORD_MAX = 4294967296
 
 OPCODES = {'NOPE': NOPE, 'YEET': YEET, 'YOINK': YOINK, 'SUB': SUB, 'MUL': MUL,
            'DIV': DIV, 'MOD': MOD, 'BOUNCE': BOUNCE, 'BOUNCEZ': BOUNCEZ,
@@ -79,7 +83,7 @@ class Instruction(object):
         buf.append(self._a_number & 0xff)
         buf.append(self._b_number >> 8 & 0xff)
         buf.append(self._b_number & 0xff)
-        return buf
+        return bytearray(buf)
 
     @mcode.setter
     def mcode(self, bytearray):
@@ -90,7 +94,7 @@ class Instruction(object):
                 raise Exception("%s: Byte array must be ints" % bytearray)
         instruction = bytearray[0]
         self.opcode = instruction >> 4
-        self.a_mode = instruction >> 2 & 0xFF
+        self.a_mode = (instruction >> 2) & 0x3
         self.b_mode = instruction & 0x3
         self._a_number = bytearray[1]
         self._b_number = bytearray[2] << 8 | bytearray[3]
@@ -254,7 +258,6 @@ def parse(input, definitions={}):
         
         instruction = parse_ysm(line)
         instructions.append(instruction)
-    
     return instructions
 
     # # evaluate start expression
