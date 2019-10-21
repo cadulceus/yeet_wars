@@ -6,7 +6,7 @@ import re
 __all__ = ['parse', 'NOPE', 'YEET', 'YOINK', 'SUB', 'MUL', 'DIV', 'MOD', 'BOUNCE',
            'BOUNCEZ', 'BOUNCEN', 'BOUNCED', 'ZOOP', 'SLT', 'SAMEZIES', 'NSAMEZIES', 'YEETCALL',
            'IMMEDIATE', 'RELATIVE', 'REGISTER_DIRECT', 'REGISTER_INDIRECT', 'Instruction',
-           'INSTRUCTION_WIDTH', 'WORD_SIZE']
+           'INSTRUCTION_WIDTH', 'WORD_SIZE', 'WORD_MAX', 'BYTE_MAX']
 
 # The instruction type is encoded in the first nibble of the first byte of the instruction
 NOPE      = 0     # No operation
@@ -39,6 +39,8 @@ REGISTER_INDIRECT = 3   # Register indirect
 
 INSTRUCTION_WIDTH = 4
 WORD_SIZE = 4
+BYTE_MAX = 256
+WORD_MAX = 4294967296
 
 OPCODES = {'NOPE': NOPE, 'YEET': YEET, 'YOINK': YOINK, 'SUB': SUB, 'MUL': MUL,
            'DIV': DIV, 'MOD': MOD, 'BOUNCE': BOUNCE, 'BOUNCEZ': BOUNCEZ,

@@ -29,7 +29,7 @@ class Core(object):
             return bytearray([self.bytes[start + i % self.size] for i in range(stop - start)])
 
     def __setitem__(self, address, value):
-        if len(value) == 1:
+        if isinstance(value, (int, long)) == 1:
             self.bytes[address % self.size] = value
         else:
             for ctr, byte in enumerate(value):

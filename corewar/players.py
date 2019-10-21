@@ -30,6 +30,10 @@ class Thread(object):
     @dx.setter
     def dx(self, val):
         self._dx = unpack('>I', val)[0] if isinstance(val, (str, bytearray)) else val
+        
+    def __str__(self):
+        return "PC: {}, Owner: {}\nXD: {} DX: {}".format(self.pc, self.owner, list(self.xd_bytes), list(self.dx_bytes))
+        
     
 
 class Player(object):

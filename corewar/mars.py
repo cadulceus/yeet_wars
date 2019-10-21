@@ -48,7 +48,7 @@ class MARS(object):
     def __getitem__(self, address):
         return self.core[address]
     
-    def crash_thread():
+    def crash_thread(self):
         # TODO: implement scoring for thread crashes
         pass
     
@@ -76,7 +76,7 @@ class MARS(object):
         elif instr.a_mode == REGISTER_DIRECT:
             l_val = thread.xd if instr.a_number == 0 else thread.dx
         elif instr.a_mode == REGISTER_INDIRECT:
-            loc = thread.dx if instr.a_number == 0 else thread.dx
+            loc = thread.xd if instr.a_number == 0 else thread.dx
             l_val = struct.unpack('>I', self.core[loc : loc + WORD_SIZE])[0]
         else:
             print "shits fucked yo"
@@ -106,9 +106,9 @@ class MARS(object):
         elif instr.b_mode == RELATIVE:
             r_val = struct.unpack('>I', self.core[instr.b_number + thread.pc : instr.b_number + thread.pc + WORD_SIZE])[0]
         elif instr.b_mode == REGISTER_DIRECT:
-            r_val = thread.xd if instr.a_number == 0 else thread.dx
+            r_val = thread.xd if instr.b_number == 0 else thread.dx
         elif instr.b_mode == REGISTER_INDIRECT:
-            loc = thread.dx if instr.b_number == 0 else thread.dx
+            loc = thread.xd if instr.b_number == 0 else thread.dx
             r_val = struct.unpack('>I', self.core[loc : loc + WORD_SIZE])[0]
         else:
             print "shits fucked yo"
@@ -121,23 +121,37 @@ class MARS(object):
         """
         l_int = self.get_a_int(instr, thread)
         r_int = self.get_b_int(instr, thread)
-        l_val = self.get_a_value(instr, thread)
-        struct_type = '>I' if len(l_val) == 4 else '>B'
+        if instr.a_mode == IMMEDIATE and instr.b_mode != REGISTER_DIRECT:
+            # mov with an immediate as the src is an implicit movb, with the exception of register direct
+            struct_type = '>B'
+            max_size = BYTE_MAX
+            width = 1
+            r_int = r_int >> 24
+        else:
+            struct_type = '>I'
+            max_size = WORD_MAX
+            width = 4
+            
+        print "\n", l_int, r_int, instr.a_number, instr.b_number, thread.xd, thread.dx
         if instr.b_mode == IMMEDIATE:
             # Move into absolute address
-            self.core[r_int] = struct.pack(struct_type, op(l_int, self.core[r_int:r_int + 4]))
-            self.core.owner[r_int] = thread.owner
+            derefed_immediate = struct.unpack(struct_type, self.core[instr.b_number : instr.b_number + width])[0]
+            self.core[instr.b_number] = struct.pack(struct_type, op(l_int, derefed_immediate) % max_size)
+            self.core.owner[instr.b_number] = thread.owner
         elif instr.b_mode == RELATIVE:
             # Move into a relative offset
-            self.core[instr.b_number + thread.pc] = struct.pack(struct_type, op(l_int, r_int))
+            self.core[instr.b_number + thread.pc] = struct.pack(struct_type, op(l_int, r_int) % max_size)
             self.core.owner[instr.b_number + thread.pc] = thread.owner
         elif instr.b_mode == REGISTER_DIRECT:
             # Move into a register
-                thread.dx = struct.pack('>I', op(l_int, r_int))
+            if instr.b_number == 0:
+                thread.xd = struct.pack('>I', op(l_int, r_int) % max_size)
+            else:
+                thread.dx = struct.pack('>I', op(l_int, r_int) % max_size)
         elif instr.b_mode == REGISTER_INDIRECT:
             # Move into an absolute address held by a register
-            loc = thread.xd if thread.a_number == 0 else thread.dx
-            self.core[loc] = struct.pack(struct_type, op(l_int, r_int))
+            loc = thread.xd if instr.a_number == 0 else thread.dx
+            self.core[loc] = struct.pack(struct_type, op(l_int, r_int) % max_size)
             self.core.owner[loc] = thread.owner
             
     def jmp_template(self, thread, loc):
@@ -161,6 +175,7 @@ class MARS(object):
         instr.mcode = [byte for byte in self.core[thread.pc : thread.pc + 4]]
         
         opc = instr.opcode
+        print "start of step: ", thread.pc, instr.a_number, instr.b_number
 
         if opc == NOPE:
             # Not technically necessary, but might as well be explicit
@@ -170,27 +185,26 @@ class MARS(object):
             self.mov_template(instr, thread, lambda x, y : x)
             
         elif opc == YOINK:
+            print "yoinking"
             self.mov_template(instr, thread, lambda x, y : y + x)
             
         elif opc == SUB:
             self.mov_template(instr, thread, lambda x, y : y - x)
             
         elif opc == MUL:
-            self.mov_template(instr, thread, self.get_b_value(instr, thread) * self.get_a_value(instr, thread))
+            self.mov_template(instr, thread, lambda x, y : y * x)
             
         elif opc == DIV:
-            a = self.get_a_value(instr, thread)
-            if a == 0:
-                crash_thread()
+            if self.get_a_int(instr, thread) == 0:
+                self.crash_thread()
                 return
-            self.mov_template(instr, thread, self.get_b_value(instr, thread) / a)
+            self.mov_template(instr, thread, lambda x, y : y / x)
                 
         elif opc == MOD:
-            a = self.get_a_value(instr, thread)
-            if a == 0:
-                crash_thread()
+            if self.get_a_value(instr, thread) == 0:
+                self.crash_thread()
                 return
-            self.mov_template(instr, thread, self.get_b_value(instr, thread) % a)
+            self.mov_template(instr, thread, lambda x, y : y % x)
             
         elif opc == BOUNCE:
             self.jmp_template(thread, self.get_b_value(instr, thread))
