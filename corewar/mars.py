@@ -132,7 +132,6 @@ class MARS(object):
             max_size = WORD_MAX
             width = 4
             
-        print "\n", l_int, r_int, instr.a_number, instr.b_number, thread.xd, thread.dx
         if instr.b_mode == IMMEDIATE:
             # Move into absolute address
             derefed_immediate = struct.unpack(struct_type, self.core[instr.b_number : instr.b_number + width])[0]
@@ -175,7 +174,6 @@ class MARS(object):
         instr.mcode = [byte for byte in self.core[thread.pc : thread.pc + 4]]
         
         opc = instr.opcode
-        print "start of step: ", thread.pc, instr.a_number, instr.b_number
 
         if opc == NOPE:
             # Not technically necessary, but might as well be explicit
@@ -185,7 +183,6 @@ class MARS(object):
             self.mov_template(instr, thread, lambda x, y : x)
             
         elif opc == YOINK:
-            print "yoinking"
             self.mov_template(instr, thread, lambda x, y : y + x)
             
         elif opc == SUB:
