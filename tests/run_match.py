@@ -1,8 +1,8 @@
-from ..corewar.mars import *
-from ..corewar.core import *
-from ..corewar.players import *
-from ..corewar.yeetcode import *
-from ..corewar.struct import pack, unpack
+from corewar.mars import *
+from corewar.core import *
+from corewar.players import *
+from corewar.yeetcode import *
+from struct import pack, unpack
 import unittest
 
 class InstructionTests(unittest.TestCase):
