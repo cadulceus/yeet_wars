@@ -3,9 +3,7 @@
 
 import unittest
 
-from tests.redcode_test import TestRedcodeAssembler
-from tests.mars_test import TestMars
+from tests.run_match import InstructionTests
 
-if __name__ == '__main__':
+if __name__=='__main__':
     unittest.main()
-
