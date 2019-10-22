@@ -153,10 +153,21 @@ class MARS(object):
             self.core[loc] = struct.pack(struct_type, op(l_int, r_int) % max_size)
             self.core.owner[loc] = thread.owner
             
-    def jmp_template(self, thread, loc):
+    def jmp_template(self, thread, instr):
         """Simulate a generic jump instruction
         """
-        thread.pc = loc % core.size
+        if instr.b_mode == IMMEDIATE:
+            thread.pc = instr.b_number % self.core.size
+        elif instr.b_mode == RELATIVE:
+            thread.pc = thread.pc + instr.b_number % self.core.size
+        elif instr.b_mode == REGISTER_DIRECT:
+            loc = thread.xd if instr.b_number == 0 else thread.dx
+            thread.pc = loc % self.core.size
+        elif instr.b_mode == REGISTER_INDIRECT:
+            loc = struct.unpack(">I", self.core[thread.xd : thread.xd + 4])[0] if \
+                instr.b_number == 0 else \
+                struct.unpack(">I", self.core[thread.dx : thread.dx + 4])[0]
+            thread.pc = loc % self.core.size
         self.thread_pool.append(thread)
         
     def syscall_handler(self, thread):
@@ -174,7 +185,6 @@ class MARS(object):
         instr.mcode = [byte for byte in self.core[thread.pc : thread.pc + 4]]
         
         opc = instr.opcode
-
         if opc == NOPE:
             # Not technically necessary, but might as well be explicit
             pass
@@ -204,25 +214,34 @@ class MARS(object):
             self.mov_template(instr, thread, lambda x, y : y % x)
             
         elif opc == BOUNCE:
-            self.jmp_template(thread, self.get_b_value(instr, thread))
+            self.jmp_template(thread, instr)
+            return
             
         elif opc == BOUNCEZ:
-            if self.get_a_value(instr, thread) == 0:
-                self.jmp_template(thread, self.get_b_value(instr, thread))
+            if self.get_a_int(instr, thread) == 0:
+                self.jmp_template(thread, instr)
                 return
             
         elif opc == BOUNCEN:
-            if self.get_a_value(instr, thread) != 0:
-                self.jmp_template(thread, self.get_b_value(instr, thread))
+            if self.get_a_int(instr, thread) != 0:
+                self.jmp_template(thread, instr)
                 return
             
         elif opc == BOUNCED:
-            a = self.get_a_value(instr, thread) - 1
-            if instr.b_mode == IMMEDIATE:
-                self.jmp_template(thread, self.get_b_value(instr, thread))
-                return
-            elif instr.b_mode == RELATIVE:
-                self.core[instr.a_number + thread.pc] = a
+            # TODO: HANDLE
+            if instr.a_mode != IMMEDIATE:
+                a = self.get_a_int(instr, thread) - 1
+            else: 
+                # Immediates are treated as absolute addresses
+                a = struct.unpack(">I", self.core[instr.a_number : instr.a_number + 4])[0] - 1
+                
+            if a < 0:
+                a = WORD_MAX - 1
+                
+            if instr.a_mode == IMMEDIATE:
+                self.core[instr.a_number] = struct.pack(">I", a)
+            elif instr.a_mode == RELATIVE:
+                self.core[instr.a_number + thread.pc] = struct.pack(">I", a)
             elif instr.a_mode == REGISTER_DIRECT:
                 if instr.a_number == 0:
                     thread.xd = a
@@ -230,11 +249,11 @@ class MARS(object):
                     thread.dx = a
             elif instr.a_mode == REGISTER_INDIRECT:
                 if instr.a_number == 0:
-                    self.core[thread.xd + thread.pc] = a
+                    self.core[thread.xd] = struct.pack(">I", a)
                 else:
-                    self.core[thread.dx + thread.pc] = a
+                    self.core[thread.dx] = struct.pack(">I", a)
             if a != 0:
-                self.jmp_template(thread, self.get_b_value(instr, thread))
+                self.jmp_template(thread, instr)
                 return
             
         elif opc == ZOOP:

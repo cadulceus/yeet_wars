@@ -221,11 +221,19 @@ def parse_ysm(instr):
     required_args = NARGS[opcode] if opcode in NARGS else 2
     if len(args) < required_args:
         raise Exception('%s: not enough args for instruction' % instr)
-    a_arg = args[0][0] if args else None
-    b_arg = args[1][0] if args and len(args) > 1 else None
+    if required_args == 2:
+        a_arg = args[0][0]
+        b_arg = args[1][0]
 
-    a_mode = args[0][1] if args else None
-    b_mode = args[1][1] if args and len(args) > 1 else None
+        a_mode = args[0][1]
+        b_mode = args[1][1]
+    elif required_args == 1:
+        a_arg = a_mode = None
+        b_arg = args[0][0]
+        b_mode = args[0][1]
+    elif required_args == 0:
+        a_arg = b_arg = a_mode = b_mode = None
+        
     return Instruction(
         opcode=opcode,
         a_mode=a_mode,

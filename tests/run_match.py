@@ -77,8 +77,44 @@ class InstructionTests(unittest.TestCase):
         runtime.step()
         self.assertEqual(runtime.core[200], 29 % 13)
         runtime.step()
-        self.assertEqual(len(runtime.thread_pool), 0) # thread should have crashed
+        self.assertEqual(len(runtime.thread_pool), 0) # thread should have crashed  
         
+    def test_jmp(self):
+        mem = Core()
+        runtime = MARS(mem)
+        instrs = parse(['BOUNCE $8',
+                        'NOPE',
+                        'BOUNCEZ %XD, [DX',
+                        'BOUNCEN %DX, #8',
+                        'NOPE',
+                        'BOUNCED [DX, #0',
+                        'BOUNCED $60, $0'])
+        initial_core = ""
+        for instr in instrs:
+            initial_core += instr.mcode
+            
+        runtime.core[0] = initial_core
+        runtime.core[50] = pack('>I', 5)
+        runtime.core[60] = pack('>I', 0) # unnecessary but explicit
+        
+        runtime.thread_pool.append(Thread(0, 1, 50, 0))
+        runtime.step()
+        self.assertEqual(runtime.thread_pool[0].pc, 8)
+        runtime.step()
+        self.assertEqual(runtime.thread_pool[0].pc, 12)
+        runtime.step()
+        self.assertEqual(runtime.thread_pool[0].pc, 20)
+        for i in range(1, 5):
+            runtime.step()
+            self.assertEqual(unpack(">I", runtime.core[50:54])[0], 5 - i)
+            self.assertEqual(runtime.thread_pool[0].pc, 20)
+        runtime.step()
+        self.assertEqual(runtime.thread_pool[0].pc, 24)
+        self.assertEqual(unpack(">I", runtime.core[50:54])[0], 0)
+        runtime.step()
+        self.assertEqual(runtime.thread_pool[0].pc, 0)
+        self.assertEqual(unpack(">I", runtime.core[60:64])[0], WORD_MAX - 1)
+ 
 def run_tests():
     unittest.main()
     
