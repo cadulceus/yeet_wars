@@ -7,6 +7,7 @@ import operator, struct
 
 from core import Core
 from yeetcode import *
+from players import *
 
 __all__ = ['MARS', 'EVENT_EXECUTED', 'EVENT_I_WRITE', 'EVENT_I_READ',
            'EVENT_A_DEC', 'EVENT_A_INC', 'EVENT_B_DEC', 'EVENT_B_INC',
@@ -171,14 +172,45 @@ class MARS(object):
         self.thread_pool.append(thread)
         
     def syscall_handler(self, thread):
-        """Parse and simulate a syscall
+        """Parse and simulate a syscall.
+        Syscalls are given arguments by the contents of XD and DX.
+        XD contains the syscall number, while DX contains any optional arguments.
+        If a syscall errors out, it will return the string "teey" in DX.
+        Current syscalls:
+        01: TRANSFER_OWNERSHIP - transfer ownership of the current thread to the player ID specified by DX
+        02: LOCATE_NEAREST_THREAD - return the location of the nearest thread of a different owner in DX
         """
-        # TODO: write code
-        pass
+        ERROR_CODE = "teey"
+        num = thread.xd
+        if num == TRANSFER_OWNERSHIP:
+            if thread.dx in self.core.players.keys():
+                thread.owner = thread.dx
+            else:
+                thread.dx = ERROR_CODE
+            
+        if num == LOCATE_NEAREST_THREAD:
+            closest_distance = self.core.size
+            closest_pc = None
+            for t in self.thread_pool:
+                curr_distance = max(t.pc, thread.pc) - min(t.pc, thread.pc)
+                if curr_distance < closest_distance and t.owner != thread.owner:
+                    closest_distance = curr_distance
+                    closest_pc = t.pc
+            if closest_pc:
+                thread.dx = closest_pc
+            else:
+                thread.dx = ERROR_CODE
+                    
+            
+        thread.pc = (thread.pc + 4) % self.core.size
+        self.thread_pool.append(thread)
         
     def step(self):
         """Simulate one step.
         """
+        if len(self.thread_pool) == 0:
+            return
+        
         thread = self.thread_pool.pop(0)
         # copy the current instruction to the instruction register
         instr = Instruction()
@@ -258,8 +290,8 @@ class MARS(object):
             
         elif opc == ZOOP:
             # add one more to length of thread_pool to account for the current thread thats been popped
-            if len(thread_pool) + 1 < self.max_processes:
-                child = Thread(self.get_b_value(instr, thread) % self.core.size, thread.xd, thread.dx, thread.owner)
+            if len(self.thread_pool) + 1 < self.max_processes:
+                child = Thread(self.get_b_int(instr, thread) % self.core.size, thread.xd, thread.dx, thread.owner)
                 self.thread_pool.append(child)
                 
         elif opc == SLT:
@@ -275,7 +307,8 @@ class MARS(object):
                 thread.pc += INSTRUCTION_WIDTH
                 
         elif opc == YEETCALL:
-            syscall_handler(thread)
+            self.syscall_handler(thread)
+            return
                 
         # Any instructions that altered control flow should have prematurely returned
         thread.pc = (thread.pc + INSTRUCTION_WIDTH) % self.core.size

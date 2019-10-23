@@ -114,6 +114,90 @@ class InstructionTests(unittest.TestCase):
         runtime.step()
         self.assertEqual(runtime.thread_pool[0].pc, 0)
         self.assertEqual(unpack(">I", runtime.core[60:64])[0], WORD_MAX - 1)
+        
+    def test_split(self):
+        mem = Core()
+        runtime = MARS(mem)
+        instrs = parse(['ZOOP $8',
+                        'NOPE',
+                        'ZOOP %DX',
+                        'ZOOP [XD',
+                        'ZOOP #0',
+                        'NOPE',
+                        'NOPE'])
+        initial_core = ""
+        for instr in instrs:
+            initial_core += instr.mcode
+            
+        runtime.core[0] = initial_core
+        runtime.core[50] = pack('>I', 20)
+        
+        runtime.thread_pool.append(Thread(0, 50, 12, 0))
+        runtime.step()
+        self.assertEqual(runtime.thread_pool[0].pc, 8)
+        self.assertEqual(runtime.thread_pool[1].pc, 4)
+        self.assertEqual(len(runtime.thread_pool), 2)
+        runtime.step()
+        self.assertEqual(runtime.thread_pool[0].pc, 4)
+        self.assertEqual(runtime.thread_pool[1].pc, 12)
+        self.assertEqual(runtime.thread_pool[2].pc, 12)
+        self.assertEqual(len(runtime.thread_pool), 3)
+        runtime.step()
+        self.assertEqual(runtime.thread_pool[0].pc, 12)
+        self.assertEqual(runtime.thread_pool[1].pc, 12)
+        self.assertEqual(runtime.thread_pool[2].pc, 8)
+        self.assertEqual(len(runtime.thread_pool), 3)
+        runtime.step()
+        self.assertEqual(runtime.thread_pool[0].pc, 12)
+        self.assertEqual(runtime.thread_pool[1].pc, 8)
+        self.assertEqual(runtime.thread_pool[2].pc, 20)
+        self.assertEqual(runtime.thread_pool[3].pc, 16)
+        self.assertEqual(len(runtime.thread_pool), 4)
+        runtime.step()
+        self.assertEqual(runtime.thread_pool[0].pc, 8)
+        self.assertEqual(runtime.thread_pool[1].pc, 20)
+        self.assertEqual(runtime.thread_pool[2].pc, 16)
+        self.assertEqual(runtime.thread_pool[3].pc, 20)
+        self.assertEqual(runtime.thread_pool[4].pc, 16)
+        self.assertEqual(len(runtime.thread_pool), 5)
+ 
+    def test_syscall(self):
+        mem = Core(players={0 : "yeet", 69 : "teey"})
+        runtime = MARS(mem)
+        instrs = parse(['YEETCALL'])
+        initial_core = ""
+        for instr in instrs:
+            initial_core += instr.mcode
+            
+        runtime.core[0] = initial_core
+        
+        runtime.thread_pool.append(Thread(0, TRANSFER_OWNERSHIP, 69, 0)) # transfer ownership from yeet to teey
+        runtime.thread_pool.append(Thread(0, TRANSFER_OWNERSHIP, 42, 0)) # attempt to transfer to non existent player
+        runtime.thread_pool.append(Thread(0, LOCATE_NEAREST_THREAD, 0, 0))
+        runtime.step()
+        self.assertEqual(runtime.thread_pool[-1].pc, 4)
+        self.assertEqual(runtime.thread_pool[-1].owner, 69)
+        runtime.step()
+        self.assertEqual(runtime.thread_pool[-1].pc, 4)
+        self.assertEqual(runtime.thread_pool[-1].owner, 0)
+        self.assertEqual(runtime.thread_pool[-1].dx_bytes, "teey")
+        runtime.step()
+        self.assertEqual(runtime.thread_pool[-1].pc, 4)
+        self.assertEqual(runtime.thread_pool[-1].dx, 4)
+        runtime.thread_pool = []
+        runtime.thread_pool.append(Thread(0, LOCATE_NEAREST_THREAD, 0, 0))
+        runtime.thread_pool.append(Thread(10, LOCATE_NEAREST_THREAD, 0, 0))
+        runtime.thread_pool.append(Thread(20, LOCATE_NEAREST_THREAD, 0, 1))
+        runtime.thread_pool.append(Thread(50, LOCATE_NEAREST_THREAD, 0, 1))
+        runtime.step()
+        self.assertEqual(runtime.thread_pool[-1].pc, 4)
+        self.assertEqual(runtime.thread_pool[-1].dx, 20)
+        runtime.thread_pool = []
+        runtime.thread_pool.append(Thread(0, LOCATE_NEAREST_THREAD, 0, 0))
+        runtime.thread_pool.append(Thread(10, LOCATE_NEAREST_THREAD, 0, 0))
+        runtime.step()
+        self.assertEqual(runtime.thread_pool[-1].pc, 4)
+        self.assertEqual(runtime.thread_pool[-1].dx_bytes, "teey")
  
 def run_tests():
     unittest.main()

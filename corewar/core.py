@@ -9,10 +9,11 @@ class Core(object):
        warriors, and tasks.
     """
 
-    def __init__(self, initial_value='\x00', size=8000):
+    def __init__(self, initial_value='\x00', size=8000, players={}):
         self.owner = [-1 for i in range(size)]
         self.size = size
         self.clear(initial_value)
+        self.players = players
 
     def clear(self, byte):
         """Writes the same byte thorough the entire core.
