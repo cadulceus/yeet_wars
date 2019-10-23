@@ -2,11 +2,13 @@
 
 from copy import copy
 import re
+from struct import pack
 
 __all__ = ['parse', 'NOPE', 'YEET', 'YOINK', 'SUB', 'MUL', 'DIV', 'MOD', 'BOUNCE',
            'BOUNCEZ', 'BOUNCEN', 'BOUNCED', 'ZOOP', 'SLT', 'SAMEZIES', 'NSAMEZIES', 'YEETCALL',
            'IMMEDIATE', 'RELATIVE', 'REGISTER_DIRECT', 'REGISTER_INDIRECT', 'Instruction',
-           'INSTRUCTION_WIDTH', 'WORD_SIZE', 'WORD_MAX', 'BYTE_MAX']
+           'TRANSFER_OWNERSHIP', 'LOCATE_NEAREST_THREAD', 'INSTRUCTION_WIDTH', 'WORD_SIZE',
+           'WORD_MAX', 'BYTE_MAX']
 
 # The instruction type is encoded in the first nibble of the first byte of the instruction
 NOPE      = 0     # No operation
@@ -37,6 +39,10 @@ RELATIVE          = 1   # direct
 REGISTER_DIRECT   = 2   # Register direct
 REGISTER_INDIRECT = 3   # Register indirect
 
+# Syscall numbers
+TRANSFER_OWNERSHIP      = 1 # transfer ownership of the current thread to the player ID specified by DX
+LOCATE_NEAREST_THREAD   = 2 # return the location of the nearest thread of a different owner in DX
+
 INSTRUCTION_WIDTH = 4
 WORD_SIZE = 4
 BYTE_MAX = 256
@@ -52,7 +58,7 @@ MODES = {'$': IMMEDIATE, '#': RELATIVE,
 
 REGISTERS = {'XD': XD_REGISTER, 'DX': DX_REGISTER}
 
-NARGS = {'NOPE': 0, 'BOUNCE': 1, 'ZOOP': 1, 'YEETCALL': 1}
+NARGS = {'YEETCALL': 0, 'NOPE': 0, 'BOUNCE': 1, 'ZOOP': 1}
 
 class Instruction(object):
     "An encapsulation of a Redcode instruction."
@@ -220,7 +226,7 @@ def parse_ysm(instr):
             raise e
     required_args = NARGS[opcode] if opcode in NARGS else 2
     if len(args) < required_args:
-        raise Exception('%s: not enough args for instruction' % instr)
+        raise Exception('%s: not enough args for instruction: expected args: %i, given: %i' % (instr, required_args, len(args)))
     if required_args == 2:
         a_arg = args[0][0]
         b_arg = args[1][0]
@@ -260,6 +266,13 @@ def parse(input, definitions={}):
         # process info comments
         if line.startswith('#'):
             continue
+        # allow for arbitrary 4 byte words
+        if line.startswith('0x'):
+            hex_str = line[2:]
+            if len(hex_str) > 8:
+                raise Exception('%s is too long to be contained in 4 bytes' % hex_str)
+            instructions.append(pack(">I", int(hex_str, 16)))
+            continue
         # process labels
         if line.endswith(':'):
             labels[line.strip(':')] = len(instructions)
@@ -267,23 +280,3 @@ def parse(input, definitions={}):
         instruction = parse_ysm(line)
         instructions.append(instruction)
     return instructions
-
-    # # evaluate start expression
-    # if isinstance(warrior.start, str):
-    #     warrior.start = eval(warrior.start, environment, labels)
-
-    # # second pass
-    # for n, instruction in enumerate(warrior.instructions):
-
-    #     # create a dictionary of relative labels addresses to be used as a local
-    #     # eval environment
-    #     relative_labels = dict((name, address-n) for name, address in labels.iteritems())
-
-    #     # evaluate instruction fields using global environment and labels
-    #     if isinstance(instruction.a_number, str):
-    #         instruction.a_number = eval(instruction.a_number, environment, relative_labels)
-    #     if isinstance(instruction.b_number, str):
-    #         instruction.b_number = eval(instruction.b_number, environment, relative_labels)
-
-    # return warrior
-
