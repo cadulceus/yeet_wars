@@ -6,6 +6,9 @@ import os
 import threading
 
 def load_env_vars():
+    """
+    Load the yeetcode engine variables from environment variables
+    """
     env_vars = {}
     seconds_per_tick = os.getenv('YEET_SECONDS_PER_TICK')
     if seconds_per_tick:
@@ -60,7 +63,7 @@ def stage_program():
     if 'instructions' not in request.json:
         return jsonify({'error': 'instructions arg required'})
 
-    player_id = request.json['player_id']
+    player_id = str(request.json['player_id'])
     instructions = str(request.json['instructions']).split('\n')
     parsed_instructions = corewar.yeetcode.parse(instructions)
     program_bytes = []

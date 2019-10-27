@@ -1,5 +1,6 @@
 import corewar.core
 import corewar.mars
+import corewar.players
 import json
 import random
 import time
@@ -32,14 +33,16 @@ class Engine(object):
             print 'Could not read {}: {}'.format(self.staging_file, e)
             return
 
-        player_id = str(player_id)
-        if player_id not in staging_data:
+        player_key = str(player_id)
+        if player_key not in staging_data:
             return
         
-        program_bytes = staging_data[player_id]
+        program_bytes = staging_data[player_key]
         load_idx = random.randint(0, self.mars.core.size - 1)
 
         self.mars.core[load_idx] = program_bytes
+        new_thread = corewar.players.Thread(pc=load_idx, owner=player_id)
+        self.mars.next_tick_pool.append(new_thread)
 
     def run(self):
         """
