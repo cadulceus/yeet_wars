@@ -39,6 +39,8 @@ class MARS(object):
         self.minimum_separation = minimum_separation
         self.max_processes = max_processes if max_processes else len(self.core)
         self.thread_pool = []
+        self.next_tick_pool = []
+        self.tick_count = 0
 
     def __iter__(self):
         return iter(self.core)
@@ -203,7 +205,16 @@ class MARS(object):
                     
             
         thread.pc = (thread.pc + 4) % self.core.size
-        self.thread_pool.append(thread)
+        self.next_tick_pool.append(thread)
+
+    def tick(self):
+        "Simulate one step for each thread in the thread pool"
+        while self.thread_pool:
+            self.step()
+
+        self.thread_pool = self.next_tick_pool
+        self.next_tick_pool = []
+        self.tick_count += 1
         
     def step(self):
         """Simulate one step.
@@ -292,7 +303,7 @@ class MARS(object):
             # add one more to length of thread_pool to account for the current thread thats been popped
             if len(self.thread_pool) + 1 < self.max_processes:
                 child = Thread(self.get_b_int(instr, thread) % self.core.size, thread.xd, thread.dx, thread.owner)
-                self.thread_pool.append(child)
+                self.next_tick_pool.append(child)
                 
         elif opc == SLT:
             if self.get_a_value(instr, thread) < self.get_b_value(instr, thread):
@@ -312,4 +323,4 @@ class MARS(object):
                 
         # Any instructions that altered control flow should have prematurely returned
         thread.pc = (thread.pc + INSTRUCTION_WIDTH) % self.core.size
-        self.thread_pool.append(thread)
+        self.next_tick_pool.append(thread)
