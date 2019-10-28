@@ -26,6 +26,10 @@ def load_env_vars():
     if staging_file:
         env_vars['staging_file'] = staging_file
 
+    core_size = os.getenv('YEET_CORE_SIZE')
+    if core_size:
+        env_vars['core_size'] = int(core_size)
+        
     return env_vars
 
 env_vars = load_env_vars()

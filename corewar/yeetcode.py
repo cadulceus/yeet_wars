@@ -5,13 +5,12 @@ import re
 from struct import pack
 
 __all__ = ['parse', 'NOPE', 'YEET', 'YOINK', 'SUB', 'MUL', 'DIV', 'MOD', 'BOUNCE',
-           'BOUNCEZ', 'BOUNCEN', 'BOUNCED', 'ZOOP', 'SLT', 'SAMEZIES', 'NSAMEZIES', 'YEETCALL',
+           'BOUNCEZ', 'BOUNCEN', 'BOUNCED', 'ZOOP', 'YEETCALL',
            'IMMEDIATE', 'RELATIVE', 'REGISTER_DIRECT', 'REGISTER_INDIRECT', 'Instruction',
            'TRANSFER_OWNERSHIP', 'LOCATE_NEAREST_THREAD', 'INSTRUCTION_WIDTH', 'WORD_SIZE',
            'WORD_MAX', 'BYTE_MAX']
 
 # The instruction type is encoded in the first nibble of the first byte of the instruction
-NOPE      = 0     # No operation
 YEET      = 1     # move from A to B
 YOINK     = 2     # add A to B, store result in B
 SUB       = 3     # subtract A from B, store result in B
@@ -23,9 +22,7 @@ BOUNCEZ   = 8     # transfer execution to B if A is zero
 BOUNCEN   = 9     # transfer execution to B if A is non-zero
 BOUNCED   = 10    # decrement A, if A is non-zero, transfer execution to B
 ZOOP      = 11    # split off process to B
-SLT       = 12    # skip next instruction if A is less than B
-SAMEZIES  = 13    # Skip next instruction if A is equal to B
-NSAMEZIES = 14    # Skip next instruction if A is not equal to B
+NOPE      = 14     # No operation
 YEETCALL  = 15    # System call
 
 # These values are encoded in the instruction as the a_number or b_number
@@ -50,8 +47,7 @@ WORD_MAX = 4294967296
 
 OPCODES = {'NOPE': NOPE, 'YEET': YEET, 'YOINK': YOINK, 'SUB': SUB, 'MUL': MUL,
            'DIV': DIV, 'MOD': MOD, 'BOUNCE': BOUNCE, 'BOUNCEZ': BOUNCEZ,
-           'BOUNCEN': BOUNCEN, 'BOUNCED': BOUNCED, 'ZOOP': ZOOP, 'SLT': SLT,
-           'SAMEZIES': SAMEZIES, 'NSAMEZIES': NSAMEZIES, 'YEETCALL': YEETCALL}
+           'BOUNCEN': BOUNCEN, 'BOUNCED': BOUNCED, 'ZOOP': ZOOP, 'YEETCALL': YEETCALL}
 
 MODES = {'$': IMMEDIATE, '#': RELATIVE,
          '%': REGISTER_DIRECT, '[': REGISTER_INDIRECT}
@@ -138,9 +134,12 @@ class Instruction(object):
 
     def __str__(self):
         # inverse lookup the instruction values
-        opcode   = next(key for key,value in OPCODES.items() if value==self.opcode)
-        a_mode   = next(key for key,value in MODES.items() if value==self.a_mode)
-        b_mode   = next(key for key,value in MODES.items() if value==self.b_mode)
+        try:
+            opcode   = next(key for key,value in OPCODES.items() if value==self.opcode)
+            a_mode   = next(key for key,value in MODES.items() if value==self.a_mode)
+            b_mode   = next(key for key,value in MODES.items() if value==self.b_mode)
+        except Exception as e:
+            return "UNPARSEABLE<%s>" % str(self.mcode).encode("hex")
 
         return "%s %s %s, %s %s" % (opcode,
                                        a_mode,
