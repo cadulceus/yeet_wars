@@ -12,13 +12,15 @@ class Engine(object):
     data from the database.
     """
     def __init__(self, seconds_per_tick=10, nplayers=2,
-                 staging_file='staging.json', ticks_per_round=20):
+                 staging_file='staging.json', ticks_per_round=20,
+                 core_size=8192, load_interval=200):
         self.seconds_per_tick = seconds_per_tick
         self.players = [i for i in range(nplayers)]
         self.staging_file = staging_file
         self.ticks_per_round = ticks_per_round
+        self.load_interval = load_interval
 
-        self.mars = corewar.mars.MARS()
+        self.mars = corewar.mars.MARS(corewar.core.Core(size=core_size))
 
     def load_staged_program(self, player_id):
         """
@@ -38,7 +40,7 @@ class Engine(object):
             return
         
         program_bytes = staging_data[player_key]
-        load_idx = random.randint(0, self.mars.core.size - 1)
+        load_idx = random.randint(0, self.mars.core.size/self.load_interval) * self.load_interval
 
         self.mars.core[load_idx] = program_bytes
         new_thread = corewar.players.Thread(pc=load_idx, owner=player_id)
@@ -52,10 +54,11 @@ class Engine(object):
         specified in the seconds_per_tick variable
         """
         while True:
-            if self.mars.tick_count >= self.ticks_per_round:
-                target_player = self.mars.tick_count % self.ticks_per_round
-                if target_player in self.players:
-                    print 'Loading staged data for player {}'.format(target_player)
-                    self.load_staged_program(target_player)
+            print list(self.mars.core[:-1])
+            #for thread in self.mars.next_tick_pool: print thread
+            target_player = self.mars.tick_count % self.ticks_per_round
+            if target_player in self.players:
+                print 'Loading staged data for player {}'.format(target_player)
+                self.load_staged_program(target_player)
             self.mars.tick()
             time.sleep(self.seconds_per_tick)
