@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # coding: utf-8
 
-from copy import copy
+from copy import copy, deepcopy
 from random import randint
 import operator, struct
 
@@ -29,6 +29,10 @@ EVENT_B_WRITE  = 10
 EVENT_A_ARITH  = 11
 EVENT_B_ARITH  = 12
 
+class yeetTimeException(Exception):
+    def __init__(self, message, thread, instr):
+        self.message = "Emulator Runtime Exception (%s) - thread: %s Instruction: %s" % (message, thread, instr)
+
 class MARS(object):
     """The MARS. Encapsulates a simulation.
     """
@@ -41,6 +45,7 @@ class MARS(object):
         self.next_tick_pool = []
         self.tick_count = 0
         self.players = players
+        self.thread_counter = 0
 
     def __iter__(self):
         return iter(self.core)
@@ -64,16 +69,16 @@ class MARS(object):
             if instr.a_number == 0 or instr.a_number == 1:
                 l_val = thread.xd_bytes if instr.a_number == 0 else thread.dx_bytes
             else:
-                raise Exception("register a_number is not 1 or 0 thread: %s, instruction: %s" % (thread, instr))
+                raise yeetTimeException("register a_number is not 1 or 0", thread, instr)
         elif instr.a_mode == REGISTER_INDIRECT:
             if instr.a_number == 0 or instr.a_number == 1:
                 loc = struct.unpack('>I', thread.xd_bytes)[0] if instr.a_number == 0 else struct.unpack('>I', thread.dx_bytes)[0]
                 l_val = self.core[loc : loc + WORD_SIZE]
             else:
-                raise Exception("register a_number is not 1 or 0 thread: %s, instruction: %s" % (thread, instr))
+                raise yeetTimeException("register a_number is not 1 or 0", thread, instr)
             
         else:
-            raise Exception("a_mode is not within range: %s, instruction: %s" % (thread, instr))
+            raise yeetTimeException("a_mode is not within usable range", thread, instr)
         return l_val
                         
     def get_a_int(self, instr, thread):
@@ -85,15 +90,15 @@ class MARS(object):
             if instr.a_number == 0 or instr.a_number == 1:
                 l_val = thread.xd if instr.a_number == 0 else thread.dx
             else:
-                raise Exception("register a_number is not 1 or 0 thread: %s, instruction: %s" % (thread, instr))
+                raise yeetTimeException("register a_number is not 1 or 0", thread, instr)
         elif instr.a_mode == REGISTER_INDIRECT:
             if instr.a_number == 0 or instr.a_number == 1:
                 loc = thread.xd if instr.a_number == 0 else thread.dx
                 l_val = struct.unpack('>I', self.core[loc : loc + WORD_SIZE])[0]
             else:
-                raise Exception("register a_number is not 1 or 0 thread: %s, instruction: %s" % (thread, instr))
+                raise yeetTimeException("register a_number is not 1 or 0", thread, instr)
         else:
-            raise Exception("a_mode is not within range: %s, instruction: %s" % (thread, instr))
+            raise yeetTimeException("a_mode is not within usable range", thread, instr)
         return l_val
                         
     def get_b_value(self, instr, thread):
@@ -105,15 +110,15 @@ class MARS(object):
             if instr.b_number == 0 or instr.b_number == 1:
                 r_val = thread.xd_bytes if instr.b_number == 0 else thread.dx_bytes
             else:
-                raise Exception("register b_number is not 1 or 0 thread: %s, instruction: %s" % (thread, instr))
+                raise yeetTimeException("register b_number is not 1 or 0", thread, instr)
         elif instr.a_mode == REGISTER_INDIRECT:
             if instr.b_number == 0 or instr.b_number == 1:
                 loc = struct.unpack('>I', thread.xd_bytes)[0] if instr.b_number == 0 else struct.unpack('>I', thread.dx_bytes)[0]
                 r_val = self.core[loc : loc + WORD_SIZE]
             else:
-                raise Exception("register b_number is not 1 or 0 thread: %s, instruction: %s" % (thread, instr))
+                raise yeetTimeException("register b_number is not 1 or 0", thread, instr)
         else:
-            raise Exception("b_mode is not within range: %s, instruction: %s" % (thread, instr))
+            raise yeetTimeException("b_mode is not within usable range", thread, instr)
         return r_val
                         
     def get_b_int(self, instr, thread):
@@ -125,15 +130,15 @@ class MARS(object):
             if instr.b_number == 0 or instr.b_number == 1:
                 r_val = thread.xd if instr.b_number == 0 else thread.dx
             else:
-                raise Exception("register b_number is not 1 or 0 thread: %s, instruction: %s" % (thread, instr))
+                raise yeetTimeException("register b_number is not 1 or 0", thread, instr)
         elif instr.b_mode == REGISTER_INDIRECT:
             if instr.b_number == 0 or instr.b_number == 1:
                 loc = thread.xd if instr.b_number == 0 else thread.dx
                 r_val = struct.unpack('>I', self.core[loc : loc + WORD_SIZE])[0]
             else:
-                raise Exception("register b_number is not 1 or 0 thread: %s, instruction: %s" % (thread, instr))
+                raise yeetTimeException("register b_number is not 1 or 0", thread, instr)
         else:
-            raise Exception("b_mode is not within range: %s, instruction: %s" % (thread, instr))
+            raise yeetTimeException("b_mode is not within usable range", thread, instr)
         return r_val
         
     def mov_template(self, instr, thread, op):
@@ -224,10 +229,27 @@ class MARS(object):
         thread.pc = (thread.pc + 4) % self.core.size
         self.next_tick_pool.append(thread)
 
+    def spawn_thread_from_parent(self, pc, parent):
+        """Create a new thread given a parent thread and place it in the next tick's thread pool.
+        The child thread inherits everything from the parent except for its PC register and thread ID"""
+        thread = deepcopy(parent)
+        thread.pc = pc
+        thread.id = self.thread_counter
+        self.thread_counter += 1
+        self.players[parent.owner].threads.append(thread.id)
+        self.next_tick_pool.append(thread)
+    
+    def spawn_new_thread(self, thread):
+        """Create a new thread given a thread object and place it in the current thread pool."""
+        thread = deepcopy(thread)
+        if thread.id == -1:
+            thread.id = self.thread_counter
+            self.thread_counter += 1
+        self.thread_pool.insert(0, thread)
+        
     def tick(self):
         "Simulate one step for each thread in the thread pool"
         while self.thread_pool:
-            print self.thread_pool[0]
             self.step()
         self.thread_pool = self.next_tick_pool
         self.next_tick_pool = []
@@ -268,12 +290,12 @@ class MARS(object):
                 
             elif opc == DIV:
                 if self.get_a_int(instr, thread) == 0:
-                    raise Exception("Divided by 0 thread: %s, instr: %s" % (thread, instr))
+                    raise yeetTimeException("Divided by 0", thread, instr)
                 self.mov_template(instr, thread, lambda x, y : y / x)
                     
             elif opc == MOD:
                 if self.get_a_value(instr, thread) == 0:
-                    raise Exception("Modulo by 0 thread: %s, instr: %s" % (thread, instr))
+                    raise yeetTimeException("Modulo by 0", thread, instr)
                     return
                 self.mov_template(instr, thread, lambda x, y : y % x)
                 
@@ -287,7 +309,6 @@ class MARS(object):
                     return
                 
             elif opc == BOUNCEN:
-                print thread, instr
                 if self.get_a_int(instr, thread) != 0:
                     self.jmp_template(thread, instr)
                     return
@@ -324,18 +345,17 @@ class MARS(object):
             elif opc == ZOOP:
                 # add one more to length of thread_pool to account for the current thread thats been popped
                 #TODO: make this check how many threads the PLAYER currently owns
-                if len(self.thread_pool) < self.max_processes:
-                    child = Thread(self.get_b_int(instr, thread) % self.core.size, thread.xd, thread.dx, thread.owner)
-                    self.next_tick_pool.append(child)
+                if len(self.players[thread.owner].threads) < self.max_processes:
+                    self.spawn_thread_from_parent(self.get_b_int(instr, thread), thread)
                     
             elif opc == YEETCALL:
                 self.syscall_handler(thread)
                 return
             
             else:
-                raise Exception("Invalid instruction: %s, instr: %s" % (thread, instr))
-        except Exception as e:
-            print "====THREAD CRASH====\n%s" % e
+                raise yeetTimeException("Invalid instruction: %s, instr: %s" % (thread, instr))
+        except yeetTimeException as e:
+            print "====THREAD CRASH====\n%s" % e.message
             self.crash_thread()
             return
                 

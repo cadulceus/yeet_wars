@@ -8,9 +8,9 @@ import unittest
 class InstructionTests(unittest.TestCase):
     def test_modifiers(self):
         mem = Core()
-        runtime = MARS(mem)
+        runtime = MARS(mem, players={0: Player("Test", 0)})
         runtime.core[0] = parse(['YEET #0, #4'])[0].mcode
-        runtime.thread_pool.append(Thread(0, 0, 0, 0))
+        runtime.spawn_new_thread(Thread(0, 0, 0, 0))
         runtime.step()
         self.assertEqual(runtime.core[:12], '\x15\x00\x00\x04\x15\x00\x00\x04\x00\x00\x00\x00')
         
@@ -33,9 +33,9 @@ class InstructionTests(unittest.TestCase):
         
     def test_yeet(self):
         mem = Core()
-        runtime = MARS(mem)
+        runtime = MARS(mem, players={0: Player("Test", 0)})
         runtime.core[0] = parse(['YEET #0, #4'])[0].mcode
-        runtime.thread_pool.append(Thread(0, 0, 0, 0))
+        runtime.spawn_new_thread(Thread(0, 0, 0, 0))
         runtime.step()
         self.assertEqual(runtime.core[:12], '\x15\x00\x00\x04\x15\x00\x00\x04\x00\x00\x00\x00')
         self.assertEqual(runtime.next_tick_pool[0].pc, 4)
@@ -50,7 +50,7 @@ class InstructionTests(unittest.TestCase):
         
     def test_math(self):
         mem = Core()
-        runtime = MARS(mem)
+        runtime = MARS(mem, players={0: Player("Test", 0)})
         instrs = parse(['YOINK $3, #50', 'SUB $5, $100', 'MUL $7, %XD', 'DIV $11, [DX', 'MOD $13, $200', 'DIV $0, $250'])
         initial_core = ""
         for instr in instrs:
@@ -63,7 +63,7 @@ class InstructionTests(unittest.TestCase):
         runtime.core[200] = pack('>B', 29)
         runtime.core[250] = pack('>I', 37) #redundant, but explicit
         
-        runtime.thread_pool.append(Thread(0, 31, 150, 0))
+        runtime.spawn_new_thread(Thread(0, 31, 150, 0))
         runtime.step()
         self.assertEqual(runtime.core[50], 3 + 17)
         runtime.step()
@@ -79,7 +79,7 @@ class InstructionTests(unittest.TestCase):
         
     def test_jmp(self):
         mem = Core()
-        runtime = MARS(mem)
+        runtime = MARS(mem, players={0: Player("Test", 0)})
         instrs = parse(['BOUNCE $8',
                         'NOPE',
                         'BOUNCEZ %XD, [DX',
@@ -95,7 +95,7 @@ class InstructionTests(unittest.TestCase):
         runtime.core[50] = pack('>I', 5)
         runtime.core[60] = pack('>I', 0) # unnecessary but explicit
         
-        runtime.thread_pool.append(Thread(0, 1, 50, 0))
+        runtime.spawn_new_thread(Thread(0, 1, 50, 0))
         runtime.step()
         self.assertEqual(runtime.next_tick_pool[0].pc, 8)
         runtime.step()
@@ -115,7 +115,7 @@ class InstructionTests(unittest.TestCase):
         
     def test_split(self):
         mem = Core()
-        runtime = MARS(mem)
+        runtime = MARS(mem, players={0: Player("Test", 0)})
         instrs = parse(['ZOOP $8',
                         'NOPE',
                         'ZOOP %DX',
@@ -130,7 +130,7 @@ class InstructionTests(unittest.TestCase):
         runtime.core[0] = initial_core
         runtime.core[50] = pack('>I', 20)
         
-        runtime.thread_pool.append(Thread(0, 50, 12, 0))
+        runtime.spawn_new_thread(Thread(0, 50, 12, 0))
         runtime.step()
         self.assertEqual(runtime.next_tick_pool[0].pc, 8)
         self.assertEqual(runtime.next_tick_pool[1].pc, 4)
@@ -165,7 +165,7 @@ class InstructionTests(unittest.TestCase):
         self.assertEqual(len(runtime.next_tick_pool), 4)
  
     def test_syscall(self):
-        runtime = MARS(players={0 : "yeet", 69 : "teey"})
+        runtime = MARS(players={0 : Player("yeet", 0), 69 : Player("teey", 0)})
         instrs = parse(['YEETCALL'])
         initial_core = ""
         for instr in instrs:
@@ -173,9 +173,9 @@ class InstructionTests(unittest.TestCase):
             
         runtime.core[0] = initial_core
         
-        runtime.thread_pool.append(Thread(0, TRANSFER_OWNERSHIP, 69, 0)) # transfer ownership from yeet to teey
-        runtime.thread_pool.append(Thread(0, TRANSFER_OWNERSHIP, 42, 0)) # attempt to transfer to non existent player
-        runtime.thread_pool.append(Thread(0, LOCATE_NEAREST_THREAD, 0, 0))
+        runtime.spawn_new_thread(Thread(0, LOCATE_NEAREST_THREAD, 0, 0))
+        runtime.spawn_new_thread(Thread(0, TRANSFER_OWNERSHIP, 42, 0)) # attempt to transfer to non existent player
+        runtime.spawn_new_thread(Thread(0, TRANSFER_OWNERSHIP, 69, 0)) # transfer ownership from yeet to teey
         runtime.step()
         self.assertEqual(runtime.next_tick_pool[-1].pc, 4)
         self.assertEqual(runtime.next_tick_pool[-1].owner, 69)
@@ -187,16 +187,16 @@ class InstructionTests(unittest.TestCase):
         self.assertEqual(runtime.next_tick_pool[-1].pc, 4)
         self.assertEqual(runtime.next_tick_pool[-1].dx_bytes, "teey")
         runtime.thread_pool = []
-        runtime.thread_pool.append(Thread(0, LOCATE_NEAREST_THREAD, 0, 0))
-        runtime.thread_pool.append(Thread(10, LOCATE_NEAREST_THREAD, 0, 0))
-        runtime.thread_pool.append(Thread(20, LOCATE_NEAREST_THREAD, 0, 1))
-        runtime.thread_pool.append(Thread(50, LOCATE_NEAREST_THREAD, 0, 1))
+        runtime.spawn_new_thread(Thread(50, LOCATE_NEAREST_THREAD, 0, 1))
+        runtime.spawn_new_thread(Thread(20, LOCATE_NEAREST_THREAD, 0, 1))
+        runtime.spawn_new_thread(Thread(10, LOCATE_NEAREST_THREAD, 0, 0))
+        runtime.spawn_new_thread(Thread(0, LOCATE_NEAREST_THREAD, 0, 0))
         runtime.step()
         self.assertEqual(runtime.next_tick_pool[-1].pc, 4)
         self.assertEqual(runtime.next_tick_pool[-1].dx, 20)
         runtime.thread_pool = []
-        runtime.thread_pool.append(Thread(0, LOCATE_NEAREST_THREAD, 0, 0))
-        runtime.thread_pool.append(Thread(10, LOCATE_NEAREST_THREAD, 0, 0))
+        runtime.spawn_new_thread(Thread(10, LOCATE_NEAREST_THREAD, 0, 0))
+        runtime.spawn_new_thread(Thread(0, LOCATE_NEAREST_THREAD, 0, 0))
         runtime.step()
         self.assertEqual(runtime.next_tick_pool[-1].pc, 4)
         self.assertEqual(runtime.next_tick_pool[-1].dx_bytes, "teey")
