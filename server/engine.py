@@ -44,7 +44,7 @@ class Engine(object):
 
         self.mars.core[load_idx] = program_bytes
         new_thread = corewar.players.Thread(pc=load_idx, owner=player_id)
-        self.mars.next_tick_pool.append(new_thread)
+        self.mars.spawn_new_thread(new_thread)
 
     def run(self):
         """
@@ -61,4 +61,5 @@ class Engine(object):
                 print 'Loading staged data for player {}'.format(target_player)
                 self.load_staged_program(target_player)
             self.mars.tick()
+            for thread in self.mars.thread_pool: print thread
             time.sleep(self.seconds_per_tick)

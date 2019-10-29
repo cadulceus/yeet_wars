@@ -2,7 +2,7 @@ from struct import pack, unpack
 
 class Thread(object):
     #TODO: make thread_ids actually useful
-    def __init__(self, pc, xd=0, dx=0, owner=0, thread_id=0):
+    def __init__(self, pc, xd=0, dx=0, owner=0, thread_id=-1):
         self.pc = pc
         self.id = thread_id
         self._xd = unpack('>I', xd)[0] if isinstance(xd, (str, bytearray)) else xd
@@ -34,7 +34,7 @@ class Thread(object):
         self._dx = unpack('>I', val)[0] if isinstance(val, (str, bytearray)) else val
         
     def __str__(self):
-        return "PC: {} Owner: {} XD: {} DX: {}".format(self.pc, self.owner, str(self.xd_bytes).encode("hex"), str(self.dx_bytes).encode("hex") )
+        return "ID: {} PC: {} Owner: {} XD: {} DX: {}".format(self.id, self.pc, self.owner, str(self.xd_bytes).encode("hex"), str(self.dx_bytes).encode("hex") )
         
     
 
