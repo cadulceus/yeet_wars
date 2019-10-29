@@ -314,7 +314,6 @@ class MARS(object):
                     return
                 
             elif opc == BOUNCED:
-                # TODO: HANDLE
                 if instr.a_mode != IMMEDIATE:
                     a = self.get_a_int(instr, thread) - 1
                 else: 
@@ -344,7 +343,6 @@ class MARS(object):
                 
             elif opc == ZOOP:
                 # add one more to length of thread_pool to account for the current thread thats been popped
-                #TODO: make this check how many threads the PLAYER currently owns
                 if len(self.players[thread.owner].threads) < self.max_processes:
                     self.spawn_thread_from_parent(self.get_b_int(instr, thread), thread)
                     

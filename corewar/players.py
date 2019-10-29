@@ -1,7 +1,6 @@
 from struct import pack, unpack
 
 class Thread(object):
-    #TODO: make thread_ids actually useful
     def __init__(self, pc, xd=0, dx=0, owner=0, thread_id=-1):
         self.pc = pc
         self.id = thread_id
