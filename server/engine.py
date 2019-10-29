@@ -11,9 +11,10 @@ class Engine(object):
     saves data to database for web API, loads staging
     data from the database.
     """
-    def __init__(self, seconds_per_tick=10, nplayers=2,
+    def __init__(self, socketio=None, seconds_per_tick=10, nplayers=2,
                  staging_file='staging.json', ticks_per_round=20,
                  core_size=8192, load_interval=200):
+        self.__socketio = socketio
         self.seconds_per_tick = seconds_per_tick
         self.players = [i for i in range(nplayers)]
         self.staging_file = staging_file
@@ -54,7 +55,6 @@ class Engine(object):
         specified in the seconds_per_tick variable
         """
         while True:
-            print list(self.mars.core[:-1])
             #for thread in self.mars.next_tick_pool: print thread
             target_player = self.mars.tick_count % self.ticks_per_round
             if target_player in self.players:
@@ -62,4 +62,7 @@ class Engine(object):
                 self.load_staged_program(target_player)
             self.mars.tick()
             for thread in self.mars.thread_pool: print thread
+            # TODO: maybe make this slightly more network efficient (or be even more real-time)
+            if self.__socketio is not None: # broadcast state every tick.
+              self.__socketio.emit('state', list(self.mars.core.bytes))
             time.sleep(self.seconds_per_tick)
