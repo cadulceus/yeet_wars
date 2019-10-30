@@ -1,4 +1,5 @@
 from flask import Flask, jsonify, request
+from flask_socketio import SocketIO, emit
 import corewar.yeetcode
 import engine
 import json
@@ -32,16 +33,18 @@ def load_env_vars():
         
     return env_vars
 
+app = Flask(__name__)
+app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY', 'keyboard cat')
+socketio = SocketIO(app, cors_allowed_origins="*")
+
 env_vars = load_env_vars()
-e = engine.Engine(**env_vars)
+e = engine.Engine(socketio=socketio, **env_vars)
 if not os.path.isfile(e.staging_file):
     with open(e.staging_file, 'w') as w:
         w.write('{}')
 engine_thread = threading.Thread(target=e.run)
 engine_thread.daemon = True
 engine_thread.start()
-
-app = Flask(__name__)
 
 @app.route('/state')
 def get_state():
@@ -80,5 +83,11 @@ def stage_program():
     with open(e.staging_file, 'w') as w:
         json.dump(staging_data, w)
     return jsonify({'status': 'success'})
+  
+@socketio.on('connect')
+def connected_client():
+  emit('state', list(e.mars.core.bytes))
 
-app.run(host='0.0.0.0', debug=False)
+
+if __name__ == '__main__':
+  socketio.run(app, host='0.0.0.0', debug=False)
