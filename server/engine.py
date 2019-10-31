@@ -21,7 +21,10 @@ class Engine(object):
         self.ticks_per_round = ticks_per_round
         self.load_interval = load_interval
 
-        self.mars = corewar.mars.MARS(corewar.core.Core(size=core_size))
+        self.mars = corewar.mars.MARS(corewar.core.Core(size=core_size, event_recorder=self.core_event_handler), seconds_per_tick=self.seconds_per_tick)
+        
+    def core_event_handler(self, events):
+        self.__socketio.emit('core_state', events)
 
     def load_staged_program(self, player_id):
         """
@@ -45,7 +48,7 @@ class Engine(object):
 
         self.mars.core[load_idx] = program_bytes
         new_thread = corewar.players.Thread(pc=load_idx, owner=player_id)
-        self.mars.spawn_new_thread(new_thread)
+        self.mars.spawn_new_thread(new_thread, )
 
     def run(self):
         """
@@ -55,14 +58,9 @@ class Engine(object):
         specified in the seconds_per_tick variable
         """
         while True:
-            #for thread in self.mars.next_tick_pool: print thread
             target_player = self.mars.tick_count % self.ticks_per_round
             if target_player in self.players:
-                print 'Loading staged data for player {}'.format(target_player)
+                # print 'Loading staged data for player {}'.format(target_player)
                 self.load_staged_program(target_player)
             self.mars.tick()
-            for thread in self.mars.thread_pool: print thread
-            # TODO: maybe make this slightly more network efficient (or be even more real-time)
-            if self.__socketio is not None: # broadcast state every tick.
-              self.__socketio.emit('state', list(self.mars.core.bytes))
-            time.sleep(self.seconds_per_tick)
+            # for thread in self.mars.thread_pool: print thread

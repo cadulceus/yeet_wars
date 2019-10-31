@@ -28,7 +28,7 @@ const styles = theme => ({
     padding: '1em',
 
     '& > div': {
-      width: '15px',
+      width: '20px',
       'height': '20px',
     },
   },
@@ -41,7 +41,7 @@ class App extends Component {
 
     this.state = {
       socket: io(':5000'),
-      state: [],
+      core_state: [],
     }
   }
 
@@ -51,20 +51,29 @@ class App extends Component {
     socket.on('connect', () => {
       console.log("Connected!");
     });
+    
+    socket.on('connection', core => {
+      this.setState({ core_state: core });
+    });
 
     socket.on('disconnect', () => {
       // TODO: add a boundary to check for disconnect and render a "disconnected" error
     });
 
-    socket.on('state', data => {
-      this.setState({ state: data });
+    socket.on('core_state', updates => {
+      console.log(updates);
+      var core = JSON.parse(JSON.stringify(this.state.core_state));
+      updates.forEach(update => {
+        core[update[0]] = update[1];
+      });
+      this.setState({ core_state: core });
     });
   }
 
   render() {
     const { classes } = this.props;
 
-    const { state } = this.state;
+    const { core_state } = this.state;
 
     return(
       <div className={classes.root}>
@@ -72,9 +81,8 @@ class App extends Component {
           Yeet Wars
         </div>
         <div className={classes.grid}>
-          {state.map((data, idx) =>
-            <div key={idx}>
-              {data}
+          {core_state.map((data, idx) =>
+            <div key={idx} className="box" style={{backgroundColor: "#" + (255 - data).toString(16).repeat(3)}}>
             </div>  
           )}
         </div>

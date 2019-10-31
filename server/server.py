@@ -13,7 +13,7 @@ def load_env_vars():
     env_vars = {}
     seconds_per_tick = os.getenv('YEET_SECONDS_PER_TICK')
     if seconds_per_tick:
-        env_vars['seconds_per_tick'] = int(seconds_per_tick)
+        env_vars['seconds_per_tick'] = float(seconds_per_tick)
     
     ticks_per_round = os.getenv('YEET_TICKS_PER_ROUND')
     if ticks_per_round:
@@ -86,7 +86,7 @@ def stage_program():
   
 @socketio.on('connect')
 def connected_client():
-  emit('state', list(e.mars.core.bytes))
+  emit('connection', list(e.mars.core.bytes))
 
 
 if __name__ == '__main__':

@@ -51,7 +51,7 @@ class InstructionTests(unittest.TestCase):
     def test_math(self):
         mem = Core()
         runtime = MARS(mem, players={0: Player("Test", 0)})
-        instrs = parse(['YOINK $3, #50', 'SUB $5, $100', 'MUL $7, %XD', 'DIV $11, [DX', 'MOD $13, $200', 'DIV $0, $250'])
+        instrs = parse(['YOINK $3, #50', 'SUB $5, $100', 'MUL $7, %XD', 'DIV $11, [DX', 'FITS $13, $200', 'DIV $0, $250'])
         initial_core = ""
         for instr in instrs:
             initial_core += instr.mcode

@@ -6,6 +6,7 @@ from random import randint
 import operator, struct
 
 from core import Core
+from time import sleep
 from yeetcode import *
 from players import *
 
@@ -37,7 +38,7 @@ class MARS(object):
     """The MARS. Encapsulates a simulation.
     """
 
-    def __init__(self, core=None, minimum_separation=100, max_processes=20, players={}):
+    def __init__(self, core=None, minimum_separation=100, max_processes=20, players={}, seconds_per_tick=0):
         self.core = core if core else Core()
         self.minimum_separation = minimum_separation
         self.max_processes = max_processes if max_processes else len(self.core)
@@ -46,6 +47,7 @@ class MARS(object):
         self.tick_count = 0
         self.players = players
         self.thread_counter = 0
+        self.seconds_per_tick = seconds_per_tick
 
     def __iter__(self):
         return iter(self.core)
@@ -249,13 +251,14 @@ class MARS(object):
         
     def tick(self):
         "Simulate one step for each thread in the thread pool"
+        pool_size = len(self.thread_pool)
         while self.thread_pool:
-            self.step()
+            self.step(float(self.seconds_per_tick/pool_size))
         self.thread_pool = self.next_tick_pool
         self.next_tick_pool = []
         self.tick_count += 1
         
-    def step(self):
+    def step(self, sleep_length=None):
         """Simulate one step.
         """
         if len(self.thread_pool) == 0:
@@ -293,7 +296,7 @@ class MARS(object):
                     raise yeetTimeException("Divided by 0", thread, instr)
                 self.mov_template(instr, thread, lambda x, y : y / x)
                     
-            elif opc == MOD:
+            elif opc == FITS:
                 if self.get_a_value(instr, thread) == 0:
                     raise yeetTimeException("Modulo by 0", thread, instr)
                     return
@@ -351,7 +354,7 @@ class MARS(object):
                 return
             
             else:
-                raise yeetTimeException("Invalid instruction: %s, instr: %s" % (thread, instr))
+                raise yeetTimeException("Invalid instruction", thread, instr)
         except yeetTimeException as e:
             print "====THREAD CRASH====\n%s" % e.message
             self.crash_thread()
@@ -360,3 +363,5 @@ class MARS(object):
         # Any instructions that altered control flow should have prematurely returned
         thread.pc = (thread.pc + INSTRUCTION_WIDTH) % self.core.size
         self.next_tick_pool.append(thread)
+        if sleep_length:
+            sleep(sleep_length)

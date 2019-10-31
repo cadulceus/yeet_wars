@@ -11,3 +11,9 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
     monospace;
 }
+
+.box {
+  float: left;
+  margin: 1px;
+  border: 1px solid rgba(0, 0, 0, .2);
+}
