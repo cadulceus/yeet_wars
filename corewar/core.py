@@ -1,6 +1,7 @@
 # coding: utf-8
 
 from copy import copy
+from struct import unpack
 
 __all__ = ['Core']
 
@@ -9,10 +10,11 @@ class Core(object):
        warriors, and tasks.
     """
 
-    def __init__(self, initial_value='\x00', size=8000):
+    def __init__(self, initial_value='\x00', size=8000, event_recorder=lambda *args : None):
         self.owner = [-1 for i in range(size)]
         self.size = size
         self.clear(initial_value)
+        self.event_recorder = event_recorder
 
     def clear(self, byte):
         """Writes the same byte thorough the entire core.
@@ -31,9 +33,17 @@ class Core(object):
     def __setitem__(self, address, value):
         if isinstance(value, (int, long)):
             self.bytes[address % self.size] = value
+            self.event_recorder(((address % self.size, value)))
         else:
+            events = []
             for ctr, byte in enumerate(value):
+                if not isinstance(byte, (int, long)):
+                    converted = ord(byte)
+                else:
+                    converted = byte
                 self.bytes[(address + ctr) % self.size] = byte
+                events.append(((address + ctr) % self.size, converted))
+            self.event_recorder(events)
 
     def __iter__(self):
         return iter(self.bytes)
