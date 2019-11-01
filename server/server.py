@@ -18,10 +18,6 @@ def load_env_vars():
     ticks_per_round = os.getenv('YEET_TICKS_PER_ROUND')
     if ticks_per_round:
         env_vars['ticks_per_round'] = int(ticks_per_round)
-    
-    nplayers = os.getenv('YEET_NPLAYERS')
-    if nplayers:
-        env_vars['nplayers'] = int(nplayers)
 
     staging_file = os.getenv('YEET_STAGING_FILE')
     if staging_file:
@@ -30,6 +26,10 @@ def load_env_vars():
     core_size = os.getenv('YEET_CORE_SIZE')
     if core_size:
         env_vars['core_size'] = int(core_size)
+    
+    max_processes = os.getenv('YEET_MAX_PROCESSES')
+    if max_processes:
+        env_vars['config_file'] = max_processes
         
     return env_vars
 
@@ -37,8 +37,17 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY', 'keyboard cat')
 socketio = SocketIO(app, cors_allowed_origins="*")
 
+config_file = os.getenv('YEET_CONFIG_FILE')
+
 env_vars = load_env_vars()
-e = engine.Engine(socketio=socketio, **env_vars)
+if config_file and os.path.isfile(config_file):
+    with open(config_file, "r") as r:
+        config = json.load(r)
+        print config
+else:
+    config = env_vars
+    
+e = engine.Engine(socketio=socketio, **config)
 if not os.path.isfile(e.staging_file):
     with open(e.staging_file, 'w') as w:
         w.write('{}')

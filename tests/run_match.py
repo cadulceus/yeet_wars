@@ -8,7 +8,7 @@ import unittest
 class InstructionTests(unittest.TestCase):
     def test_modifiers(self):
         mem = Core()
-        runtime = MARS(mem, players={0: Player("Test", 0)})
+        runtime = MARS(mem, players={0: Player("Test", 0, "Token")})
         runtime.core[0] = parse(['YEET #0, #4'])[0].mcode
         runtime.spawn_new_thread(Thread(0, 0, 0, 0))
         runtime.step()
@@ -33,7 +33,7 @@ class InstructionTests(unittest.TestCase):
         
     def test_yeet(self):
         mem = Core()
-        runtime = MARS(mem, players={0: Player("Test", 0)})
+        runtime = MARS(mem, players={0: Player("Test", 0, "Token")})
         runtime.core[0] = parse(['YEET #0, #4'])[0].mcode
         runtime.spawn_new_thread(Thread(0, 0, 0, 0))
         runtime.step()
@@ -50,7 +50,7 @@ class InstructionTests(unittest.TestCase):
         
     def test_math(self):
         mem = Core()
-        runtime = MARS(mem, players={0: Player("Test", 0)})
+        runtime = MARS(mem, players={0: Player("Test", 0, "Token")})
         instrs = parse(['YOINK $3, #50', 'SUB $5, $100', 'MUL $7, %XD', 'DIV $11, [DX', 'FITS $13, $200', 'DIV $0, $250'])
         initial_core = ""
         for instr in instrs:
@@ -79,7 +79,7 @@ class InstructionTests(unittest.TestCase):
         
     def test_jmp(self):
         mem = Core()
-        runtime = MARS(mem, players={0: Player("Test", 0)})
+        runtime = MARS(mem, players={0: Player("Test", 0, "Token")})
         instrs = parse(['BOUNCE $8',
                         'NOPE',
                         'BOUNCEZ %XD, [DX',
@@ -115,7 +115,7 @@ class InstructionTests(unittest.TestCase):
         
     def test_split(self):
         mem = Core()
-        runtime = MARS(mem, players={0: Player("Test", 0)})
+        runtime = MARS(mem, players={0: Player("Test", 0, "Token")})
         instrs = parse(['ZOOP $8',
                         'NOPE',
                         'ZOOP %DX',
@@ -165,7 +165,7 @@ class InstructionTests(unittest.TestCase):
         self.assertEqual(len(runtime.next_tick_pool), 4)
  
     def test_syscall(self):
-        runtime = MARS(players={0 : Player("yeet", 0), 69 : Player("teey", 0)})
+        runtime = MARS(players={0 : Player("yeet", 0, "Token1"), 1 : Player("rando", 1, "Token2"), 69 : Player("teey", 0, "Token3")})
         instrs = parse(['YEETCALL'])
         initial_core = ""
         for instr in instrs:
