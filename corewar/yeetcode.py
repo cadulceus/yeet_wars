@@ -8,7 +8,7 @@ __all__ = ['parse', 'NOPE', 'YEET', 'YOINK', 'SUB', 'MUL', 'DIV', 'FITS', 'BOUNC
            'BOUNCEZ', 'BOUNCEN', 'BOUNCED', 'ZOOP', 'YEETCALL',
            'IMMEDIATE', 'RELATIVE', 'REGISTER_DIRECT', 'REGISTER_INDIRECT', 'Instruction',
            'TRANSFER_OWNERSHIP', 'LOCATE_NEAREST_THREAD', 'INSTRUCTION_WIDTH', 'WORD_SIZE',
-           'WORD_MAX', 'BYTE_MAX']
+           'WORD_MAX', 'BYTE_MAX', 'disassemble']
 
 # The instruction type is encoded in the first nibble of the first byte of the instruction
 YEET      = 1     # move from A to B
@@ -55,6 +55,14 @@ MODES = {'$': IMMEDIATE, '#': RELATIVE,
 REGISTERS = {'XD': XD_REGISTER, 'DX': DX_REGISTER}
 
 NARGS = {'YEETCALL': 0, 'NOPE': 0, 'BOUNCE': 1, 'ZOOP': 1}
+
+def disassemble(byte_arr):
+    instr = Instruction()
+    try:
+        instr.mcode = byte_arr
+    except Exception as e:
+        return e.message
+    return instr.__str__()
 
 class Instruction(object):
     "An encapsulation of a Redcode instruction."

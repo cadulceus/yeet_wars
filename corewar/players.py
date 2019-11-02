@@ -38,11 +38,12 @@ class Thread(object):
     
 
 class Player(object):
-    def __init__(self, name, player_id, token):
+    def __init__(self, name, player_id, token, score=0):
         self.threads = []
         self.name = name
         self.id = player_id
         self.token = token
+        self.score = score
         
     def __str__(self):
         return "Name: {} ID: {}".format(self.name, self.id)

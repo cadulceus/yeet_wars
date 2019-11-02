@@ -296,12 +296,18 @@ class MARS(object):
             self.tick_count += 1
         
         thread = self.thread_pool.pop(0)
-        # copy the current instruction to the instruction register
         instr = Instruction()
         instr.mcode = [byte for byte in self.core[thread.pc : thread.pc + 4]]
         
         opc = instr.opcode
+        
+        # copy the current instruction to the instruction register
         try:
+            if (instr.a_mode == REGISTER_DIRECT or instr.a_mode == REGISTER_INDIRECT) and instr.a_number not in [0, 1]:
+                raise yeetTimeException("a_number is not within the range of valid registers", instr, thread)
+            if (instr.b_mode == REGISTER_DIRECT or instr.b_mode == REGISTER_INDIRECT) and instr.b_number not in [0, 1]:
+                raise yeetTimeException("b_number is not within the range of valid registers", instr , thread)
+            
             if opc == NOPE:
                 # Not technically necessary, but might as well be explicit
                 pass
@@ -324,9 +330,8 @@ class MARS(object):
                 self.mov_template(instr, thread, lambda x, y : y / x)
                     
             elif opc == FITS:
-                if self.get_a_value(instr, thread) == 0:
+                if self.get_a_int(instr, thread) == 0:
                     raise yeetTimeException("Modulo by 0", thread, instr)
-                    return
                 self.mov_template(instr, thread, lambda x, y : y % x)
                 
             elif opc == BOUNCE:
