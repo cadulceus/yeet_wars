@@ -39,7 +39,7 @@ class Engine(object):
 
     def save_payload_to_disk(self, payload):
         with open("history.txt", "a+") as w:
-            w.write"%s (%s): [%s]\n" % (self.players[payload[0]], self.mars.tick_count, ":::".join(payload[1])))
+            w.write("%s (%s): [%s]\n" % (self.players[payload[0]], self.mars.tick_count, ":::".join(payload[1])))
 
     def load_staged_program(self, player_id):
         """

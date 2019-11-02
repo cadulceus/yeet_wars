@@ -56,6 +56,11 @@ class Core extends Component {
     });
   }
 
+  componentWillUnmount() {
+    const { socket } = this.state;
+    console.log('Leaving');
+  }
+
   render() {
     const { classes } = this.props;
     const { core_state } = this.state;

@@ -41,28 +41,28 @@ class App extends Component {
 
     return(
       <Router>
-      <div>
-        <nav>
-          <ul>
-            <li>
-              <Link to="/">Core</Link>
-            </li>
-            <li>
-              <Link to="/events">Events`</Link>
-            </li>
-          </ul>
-        </nav>
+        <div>
+          <nav>
+            <ul>
+              <li>
+                <Link to="/">Core</Link>
+              </li>
+              <li>
+                <Link to="/events">Events</Link>
+              </li>
+            </ul>
+          </nav>
 
-        <Switch>
-          <Route path="/">
-            <Core />
-          </Route>
-          <Route path="/events">
-            <Events />
-          </Route>
-        </Switch>
-      </div>
-    </Router>
+          <Switch>
+            <Route exact path="/">
+              <Core />
+            </Route>
+            <Route exact path="/events">
+              <Events />
+            </Route>
+          </Switch>
+        </div>
+      </Router>
     );
   }
 }
