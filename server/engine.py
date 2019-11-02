@@ -14,22 +14,32 @@ class Engine(object):
     def __init__(self, socketio=None, seconds_per_tick=10,
                  staging_file='staging.json', ticks_per_round=20,
                  core_size=8192, load_interval=200,
-                 players={"0": "User0"}, max_processes=10):
+                 players={"0": "User0"}, max_processes=10, max_staging_size=50):
         self.__socketio = socketio
         self.seconds_per_tick = seconds_per_tick
         self.staging_file = staging_file
         self.ticks_per_round = ticks_per_round
         self.load_interval = load_interval
         self.players = {}
+        self.staged_payloads = {}
+        self.max_staging_size = max_staging_size
         for idx, player in enumerate(players):
             self.players[int(idx)] = corewar.players.Player(player, int(idx), players[player])
 
         self.mars = corewar.mars.MARS(corewar.core.Core(size=core_size, \
-            event_recorder=self.core_event_handler), players=self.players, \
-            max_processes=max_processes, seconds_per_tick=self.seconds_per_tick)
+            core_event_recorder=self.core_event_handler), players=self.players, \
+            max_processes=max_processes, seconds_per_tick=self.seconds_per_tick, \
+            runtime_event_handler=self.runtime_event_handler)
         
     def core_event_handler(self, events):
         self.__socketio.emit('core_state', events)
+        
+    def runtime_event_handler(self, events):
+        self.__socketio.emit('events', events)
+
+    def save_payload_to_disk(self, payload):
+        with open("history.txt", "a+") as w:
+            w.write"%s (%s): [%s]\n" % (self.players[payload[0]], self.mars.tick_count, ":::".join(payload[1])))
 
     def load_staged_program(self, player_id):
         """
@@ -37,25 +47,22 @@ class Engine(object):
         from the staging file and insert those
         bytes into a random location in the cores memory
         """
-        try:
-            with open(self.staging_file, 'r') as r:
-                staging_data = json.load(r)
-        except Exception as e:
-            print 'Could not read {}: {}'.format(self.staging_file, e)
-            return
-
-        player_key = str(player_id)
-        if player_key not in staging_data:
+        if player_id not in self.staged_payloads.keys() or self.staged_payloads[player_id] == []:
+            print "nothing staged for player %s" % self.players[player_id]
             return
         
-        program_bytes = staging_data[player_key]
+        assembled_instructions = corewar.yeetcode.assemble(self.staged_payloads[player_id][1])
         load_idx = random.randint(0, self.mars.core.size/self.load_interval) * self.load_interval
 
-        self.mars.core[load_idx] = program_bytes
+        self.mars.core[load_idx] = assembled_instructions
         new_thread = corewar.players.Thread(pc=load_idx, owner=player_id)
         self.mars.spawn_new_thread(new_thread)
+        
         if len(self.mars.players[player_id].threads) > self.mars.max_processes:
             self.mars.kill_oldest_thread(player_id)
+        
+        self.save_payload_to_disk(self.staged_payloads[player_id])
+        self.staged_payloads[player_id] = []
 
     def run(self):
         """
@@ -65,6 +72,7 @@ class Engine(object):
         specified in the seconds_per_tick variable
         """
         while True:
+            #TODO: allow for more players than ticks_per_round
             target_player = self.mars.tick_count % self.ticks_per_round
             if target_player in self.players:
                 print 'Loading staged data for player {}'.format(self.players[target_player])

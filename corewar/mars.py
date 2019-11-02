@@ -38,7 +38,8 @@ class MARS(object):
     """The MARS. Encapsulates a simulation.
     """
 
-    def __init__(self, core=None, minimum_separation=100, max_processes=10, players={}, seconds_per_tick=0):
+    def __init__(self, core=None, minimum_separation=100, max_processes=10, players={}, seconds_per_tick=0, \
+        runtime_event_handler=lambda *args: None):
         self.core = core if core else Core()
         self.minimum_separation = minimum_separation
         self.max_processes = max_processes if max_processes else len(self.core)
@@ -48,6 +49,7 @@ class MARS(object):
         self.players = players
         self.thread_counter = 0
         self.seconds_per_tick = seconds_per_tick
+        self.runtime_event_handler = runtime_event_handler
 
     def __iter__(self):
         return iter(self.core)
@@ -61,13 +63,13 @@ class MARS(object):
     def kill_thread(self, thread_id):
         for idx, thread in enumerate(self.thread_pool):
             if thread.id == thread_id:
-                print "Killing thread in thread pool %s" % thread
+                self.runtime_event_handler("Killing thread in thread pool %s" % thread)
                 del self.thread_pool[idx]
                 return
         
         for idx, thread in enumerate(self.next_tick_pool):
             if thread.id == thread_id:
-                print "Killing thread in next tick's thread pool %s" % thread
+                self.runtime_event_handler("Killing thread in next tick's thread pool %s" % thread)
                 del self.next_tick_pool[idx]
                 return
         
@@ -80,7 +82,7 @@ class MARS(object):
         self.kill_thread(self.players[player_id].threads.pop(0))
         
     def crash_thread(self, thread, message):
-        print "====THREAD CRASH====\n%s" % message
+        self.runtime_event_handler("====THREAD CRASH====\n%s" % message)
         self.players[thread.owner].threads.remove(thread.id)
     
     def get_a_value(self, instr, thread):
@@ -281,9 +283,8 @@ class MARS(object):
         pool_size = len(self.thread_pool)
         if not self.thread_pool:
             sleep(self.seconds_per_tick)
-        else:
-            while self.thread_pool:
-                self.step(float(self.seconds_per_tick)/pool_size)
+        while self.thread_pool:
+            self.step(float(self.seconds_per_tick)/pool_size)
         self.thread_pool = self.next_tick_pool
         self.next_tick_pool = []
         self.tick_count += 1

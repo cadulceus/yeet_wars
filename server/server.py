@@ -86,7 +86,7 @@ def stage_program():
     Expects a POST with JSON containing a player ID
     and the yeetcode assembly instructions to stage for that player
     Example:
-    $ curl -H 'content-type: application/json' -d '{"player_id": 0, "instructions": "YEET 1, 1"}' 
+    $ curl -H 'content-type: application/json' -d '{"player_id": 0, "instructions": "YEET #0, #4"}' 
     -XPOST localhost:5000/stage
     {"status":"success"} 
     """
@@ -97,16 +97,9 @@ def stage_program():
 
     player_id = str(request.json['player_id'])
     instructions = str(request.json['instructions']).split('\n')
-    parsed_instructions = corewar.yeetcode.parse(instructions)
-    program_bytes = []
-    for instruction in parsed_instructions:
-        program_bytes += instruction.mcode
-    with open(e.staging_file, 'r') as r:
-        staging_data = json.load(r)
-
-    staging_data[player_id] = program_bytes
-    with open(e.staging_file, 'w') as w:
-        json.dump(staging_data, w)
+    if len(instructions) > e.max_staging_size:
+        instructions = instructions[:e.max_staging_size]
+    e.staged_payloads[int(player_id)] = [int(player_id), instructions]
     return jsonify({'status': 'success'})
   
 @socketio.on('connect')
