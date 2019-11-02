@@ -13,8 +13,28 @@ class Events extends Component {
 
     this.state = {
       socket: io(':5000'),
+      event_feed: []
     };
   }
+
+  componentDidMount(){
+    const { socket } = this.state;
+
+    socket.on('connect', () => {
+      console.log("Connected!");
+    });
+    
+    socket.on('events', new_events => {
+      var current_events = JSON.parse(JSON.stringify(this.state.event_feed));
+      current_events.unshift(new_events);
+      this.setState({ event_feed: current_events });
+    });
+
+    socket.on('disconnect', () => {
+      // TODO: add a boundary to check for disconnect and render a "disconnected" error
+    });
+  }
+
   render() {
     const { classes } = this.props;
 
