@@ -56,7 +56,17 @@ REGISTERS = {'XD': XD_REGISTER, 'DX': DX_REGISTER}
 
 NARGS = {'YEETCALL': 0, 'NOPE': 0, 'BOUNCE': 1, 'ZOOP': 1}
 
+def assemble(str_iterable):
+    """Takes an iterable of instruction strings, returns a bytearray of the
+    assembled result"""
+    instrs = parse(str_iterable)
+    binary_blob = bytearray()
+    for instr in instrs:
+        binary_blob += instr if isinstance(instr, bytearray) else instr.mcode
+    return binary_blob
+
 def disassemble(byte_arr):
+    """returns the yasm for a given 4 byte bytearray"""
     instr = Instruction()
     try:
         instr.mcode = byte_arr
@@ -256,8 +266,7 @@ def parse_ysm(instr):
     )
 
 def parse(input, definitions={}):
-    """ Parse a Redcode code from a line iterator (input) returning a Warrior
-        object."""
+    """ Return a list of instruction objects given an iterable of yasm strings."""
 
     labels = {}
     instructions = []

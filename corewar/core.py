@@ -10,11 +10,11 @@ class Core(object):
        warriors, and tasks.
     """
 
-    def __init__(self, initial_value='\x00', size=8000, event_recorder=lambda *args : None):
+    def __init__(self, initial_value='\x00', size=8000, core_event_recorder=lambda *args : None):
         self.owner = [-1 for i in range(size)]
         self.size = size
         self.clear(initial_value)
-        self.event_recorder = event_recorder
+        self.core_event_recorder = core_event_recorder
 
     def clear(self, byte):
         """Writes the same byte thorough the entire core.
@@ -33,7 +33,7 @@ class Core(object):
     def __setitem__(self, address, value):
         if isinstance(value, (int, long)):
             self.bytes[address % self.size] = value
-            self.event_recorder(((address % self.size, value)))
+            self.core_event_recorder(((address % self.size, value)))
         else:
             events = []
             for ctr, byte in enumerate(value):
@@ -43,7 +43,7 @@ class Core(object):
                     converted = byte
                 self.bytes[(address + ctr) % self.size] = byte
                 events.append(((address + ctr) % self.size, converted))
-            self.event_recorder(events)
+            self.core_event_recorder(events)
 
     def __iter__(self):
         return iter(self.bytes)
