@@ -3,6 +3,7 @@ from corewar.core import *
 from corewar.players import *
 from corewar.yeetcode import *
 from struct import pack, unpack
+from random import randint
 import unittest
 
 class InstructionTests(unittest.TestCase):
@@ -165,7 +166,7 @@ class InstructionTests(unittest.TestCase):
         self.assertEqual(len(runtime.next_tick_pool), 4)
  
     def test_syscall(self):
-        runtime = MARS(players={0 : Player("yeet", 0, "Token1"), 1 : Player("rando", 1, "Token2"), 69 : Player("teey", 0, "Token3")})
+        runtime = MARS(players={0 : Player("yeet", 0, "Token1"), 1 : Player("rando", 1, "Token2"), 69 : Player("teey", 69, "Token3")})
         instrs = parse(['YEETCALL'])
         initial_core = ""
         for instr in instrs:
@@ -200,6 +201,27 @@ class InstructionTests(unittest.TestCase):
         runtime.step()
         self.assertEqual(runtime.next_tick_pool[-1].pc, 4)
         self.assertEqual(runtime.next_tick_pool[-1].dx_bytes, "teey")
+        
+    def test_fuzz(self):
+        runtime = MARS(players={0 : Player("rando1", 0, "Token1"), 1 : Player("rando2", 1, "Token2"), 2 : Player("rando3", 2, "Token3")})
+        initial_core = ""
+        for i in range(runtime.core.size):
+            initial_core += chr(randint(0, 255))
+            if i % 7 == 0:
+                xd = randint(0, WORD_MAX - 1) if randint(0, 1) else randint(0, BYTE_MAX - 1)
+                dx = randint(0, WORD_MAX - 1) if randint(0, 1) else randint(0, BYTE_MAX - 1)
+                runtime.spawn_new_thread(Thread(i, xd, dx, randint(0, 2)))
+            
+        runtime.core[0] = initial_core
+        for i in range(200000):
+            cycle_count = i
+            live_threads = len(runtime.thread_pool) + len(runtime.next_tick_pool)
+            runtime.step()
+            if len(runtime.thread_pool) + len(runtime.next_tick_pool) == 0:
+                break
+        print "Test completed in %s cycles, %s threads remained" % (cycle_count, live_threads)
+        for thread in runtime.thread_pool: print thread, disassemble(runtime.core[thread.pc:thread.pc + 4])
+        for thread in runtime.next_tick_pool: print thread, disassemble(runtime.core[thread.pc:thread.pc + 4])
  
 def run_tests():
     unittest.main()
