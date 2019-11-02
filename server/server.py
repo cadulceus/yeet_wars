@@ -1,5 +1,6 @@
-from flask import Flask, jsonify, request
+from flask import Flask, abort, jsonify, request
 from flask_socketio import SocketIO, emit
+from functools import wraps
 import corewar.yeetcode
 import engine
 import json
@@ -46,6 +47,20 @@ if config_file and os.path.isfile(config_file):
         print config
 else:
     config = env_vars
+
+app.config['ADMIN_TOKEN'] = config.pop('admin_token').lower()
+def admin_authorize(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not 'Authorization' in request.headers:
+            abort(401)
+
+        data = request.headers['Authorization'].encode('ascii', 'ignore')
+        token = data.lower().replace('bearer: ', '')
+        if token != app.config['ADMIN_TOKEN']:
+            abort(401)
+        return f(*args, **kwargs)
+    return decorated_function
     
 e = engine.Engine(socketio=socketio, **config)
 if not os.path.isfile(e.staging_file):
@@ -56,6 +71,7 @@ engine_thread.daemon = True
 engine_thread.start()
 
 @app.route('/state')
+@admin_authorize
 def get_state():
     """
     GET /state
@@ -94,6 +110,7 @@ def stage_program():
     return jsonify({'status': 'success'})
   
 @socketio.on('connect')
+@admin_authorize
 def connected_client():
   emit('connection', list(e.mars.core.bytes))
 

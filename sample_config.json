@@ -3,6 +3,7 @@
 "ticks_per_round": 5,
 "staging_file": "staging.json",
 "core_size": 4097,
+"admin_token": "admintokenyeet",
 "players": {
     "anon1": "token1",
     "anon2": "token2",
@@ -10,4 +11,3 @@
     "anon4": "token4",
     "anon5": "token5"}
 }
-    
