@@ -88,7 +88,8 @@ def stage_program():
   
 @socketio.on('connect')
 def connected_client():
-  emit('connection', list(e.mars.core.bytes))
+  emit('core_connection', list(e.mars.core.bytes))
+  emit('event_connection', "Events feed loaded")
 
 
 if __name__ == '__main__':

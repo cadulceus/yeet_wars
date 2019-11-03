@@ -23,19 +23,55 @@ class Engine(object):
         self.players = {}
         self.staged_payloads = {}
         self.max_staging_size = max_staging_size
+        self.used_colors = []
+        for i in range(len(players)):
+            self.used_colors.append(self.generate_new_color(self.used_colors))
         for idx, player in enumerate(players):
-            self.players[int(idx)] = corewar.players.Player(player, int(idx), players[player])
+            self.players[int(idx)] = corewar.players.Player(player, int(idx), players[player], color=self.used_colors[idx])
 
         self.mars = corewar.mars.MARS(corewar.core.Core(size=core_size, \
             core_event_recorder=self.core_event_handler), players=self.players, \
             max_processes=max_processes, seconds_per_tick=self.seconds_per_tick, \
-            runtime_event_handler=self.runtime_event_handler)
+            runtime_event_handler=self.runtime_event_handler, update_thread_event_handler=self.update_thread_event_handler, \
+            kill_thread_event_handler=self.kill_thread_event_handler)
+
+
+    #TODO: these color functions should really be broken out 
+    def get_random_color(self, pastel_factor = 0.5):
+        return [(x+pastel_factor)/(1.0+pastel_factor) for x in [random.uniform(0,1.0) for i in [1,2,3]]]
+
+    def color_distance(self, c1,c2):
+        return sum([abs(x[0]-x[1]) for x in zip(c1,c2)])
+
+    def generate_new_color(self, existing_colors,pastel_factor = 0.5):
+        max_distance = None
+        best_color = None
+        for i in range(0,100):
+            color = self.get_random_color(pastel_factor = pastel_factor)
+            if not existing_colors:
+                return color
+            best_distance = min([self.color_distance(color,c) for c in existing_colors])
+            if not max_distance or best_distance > max_distance:
+                max_distance = best_distance
+                best_color = color
+        return best_color
+    
+    def float_to_hex_colors(self, color):
+        hexified_colors = [hex(int(255 * percentage))[2:] for percentage in color]
+        return "#" + "".join(hexified_colors)
+        
         
     def core_event_handler(self, events):
         self.__socketio.emit('core_state', events)
         
+    def update_thread_event_handler(self, pid, pc, color):
+        self.__socketio.emit('update_thread', [pid, pc, self.float_to_hex_colors(color)])
+        
+    def kill_thread_event_handler(self, events):
+        self.__socketio.emit('kill_thread', events)
+        
     def runtime_event_handler(self, events):
-        self.__socketio.emit('events', events)
+        self.__socketio.emit('events', "Cycle number: %s\n%s\n\n%s" % (self.mars.tick_count, events, time.ctime(time.time())))
 
     def save_payload_to_disk(self, payload):
         with open("history.txt", "a+") as w:
@@ -51,7 +87,14 @@ class Engine(object):
             print "nothing staged for player %s" % self.players[player_id]
             return
         
-        assembled_instructions = corewar.yeetcode.assemble(self.staged_payloads[player_id][1])
+        try:
+            assembled_instructions = corewar.yeetcode.assemble(self.staged_payloads[player_id][1])
+        except Exception as e:
+            self.runtime_event_handler("Failed to assemble payload. \
+                Staging endpoint expects a string of newline separated instructions: %s" % e.message)
+            self.staged_payloads[player_id] = []
+            return
+            
         load_idx = random.randint(0, self.mars.core.size/self.load_interval) * self.load_interval
 
         self.mars.core[load_idx] = assembled_instructions
@@ -60,6 +103,9 @@ class Engine(object):
         
         if len(self.mars.players[player_id].threads) > self.mars.max_processes:
             self.mars.kill_oldest_thread(player_id)
+        
+        self.runtime_event_handler("Loading new thread for %s: \n$ %s" % \
+            (self.players[player_id].name, "\n$ ".join(self.staged_payloads[player_id][1])))
         
         self.save_payload_to_disk(self.staged_payloads[player_id])
         self.staged_payloads[player_id] = []
@@ -75,7 +121,12 @@ class Engine(object):
             #TODO: allow for more players than ticks_per_round
             target_player = self.mars.tick_count % self.ticks_per_round
             if target_player in self.players:
-                print 'Loading staged data for player {}'.format(self.players[target_player])
                 self.load_staged_program(target_player)
             self.mars.tick()
+            current_scores = []
+            for player in self.players:
+                current_scores.append(["%s: %s" % (str(self.players[player]), self.players[player].score), \
+                    self.float_to_hex_colors(self.players[player].color)])
+            print current_scores, "\n==========================\n"
+            self.__socketio.emit('player_scores', current_scores)
             for thread in self.mars.thread_pool: print thread

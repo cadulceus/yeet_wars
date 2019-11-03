@@ -2,12 +2,13 @@
 "seconds_per_tick": 1,
 "ticks_per_round": 5,
 "staging_file": "staging.json",
-"core_size": 4097,
+"core_size": 401,
 "players": {
+    "anon0": "token0",
     "anon1": "token1",
     "anon2": "token2",
     "anon3": "token3",
-    "anon4": "token4",
-    "anon5": "token5"}
+    "anon4": "token4"
+}
 }
     
