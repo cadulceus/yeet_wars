@@ -14,7 +14,7 @@ class Engine(object):
     def __init__(self, socketio=None, seconds_per_tick=10,
                  staging_file='staging.json', ticks_per_round=20,
                  core_size=8192, load_interval=200,
-                 players={"0": "User0"}, max_processes=10, max_staging_size=50):
+                 players=[{'name': 'User0', 'token': 'token1'}], max_processes=10, max_staging_size=50):
         self.__socketio = socketio
         self.seconds_per_tick = seconds_per_tick
         self.staging_file = staging_file
@@ -24,7 +24,7 @@ class Engine(object):
         self.staged_payloads = {}
         self.max_staging_size = max_staging_size
         for idx, player in enumerate(players):
-            self.players[int(idx)] = corewar.players.Player(player, int(idx), players[player])
+            self.players[idx] = corewar.players.Player(player['name'], idx, player['token'])
 
         self.mars = corewar.mars.MARS(corewar.core.Core(size=core_size, \
             core_event_recorder=self.core_event_handler), players=self.players, \
@@ -39,7 +39,7 @@ class Engine(object):
 
     def save_payload_to_disk(self, payload):
         with open("history.txt", "a+") as w:
-            w.write"%s (%s): [%s]\n" % (self.players[payload[0]], self.mars.tick_count, ":::".join(payload[1])))
+            w.write("%s (%s): [%s]\n" % (self.players[payload[0]], self.mars.tick_count, ":::".join(payload[1])))
 
     def load_staged_program(self, player_id):
         """

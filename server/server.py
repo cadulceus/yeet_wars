@@ -49,6 +49,13 @@ else:
     config = env_vars
 
 app.config['ADMIN_TOKEN'] = config.pop('admin_token').lower()
+app.config['PLAYER_TOKENS'] = {}
+if 'players' in config:
+    for entry in config['players']:
+        player_name = entry['name']
+        player_token = entry['token']
+        app.config['PLAYER_TOKENS'][player_token] = player_name
+
 def admin_authorize(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -60,6 +67,20 @@ def admin_authorize(f):
         if token != app.config['ADMIN_TOKEN']:
             abort(401)
         return f(*args, **kwargs)
+    return decorated_function
+
+def player_authorize(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not 'Authorization' in request.headers:
+            abort(401)
+
+        data = request.headers['Authorization'].encode('ascii', 'ignore')
+        token = data.lower().replace('bearer: ', '')
+        if token not in app.config['PLAYER_TOKENS']:
+            abort(401)
+        player_name = app.config['PLAYER_TOKENS'][token]
+        return f(player_name, *args, **kwargs)
     return decorated_function
     
 e = engine.Engine(socketio=socketio, **config)
