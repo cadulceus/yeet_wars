@@ -100,6 +100,40 @@ def get_state():
     """
     return jsonify(list(e.mars.core.bytes))
 
+@app.route('/add_player', methods=['POST'])
+@admin_authorize
+def add_player():
+    """
+    POST /add_player
+    Adds a player to the game
+    Example:
+    $ curl \
+        -H 'content-type: application/json' \
+        -H 'Authorization: Bearer admintokenyeet' \
+        -d '{"name": "newplayer", "token": "newtoken"}' \
+        -XPOST localhost:5000/add_player
+    {'status': 'success'}
+    """
+    if not request.json:
+        return jsonify({'status': 'error', 'message': 'no data posted'})
+    
+    if 'name' not in request.json or 'token' not in request.json:
+        return jsonify({'status': 'error', 'message': 'name and token fields required'})
+
+    player_name = request.json['name']
+    player_token = request.json['token']
+
+    if player_token in app.config['PLAYER_TOKENS']:
+        return jsonify({'status': 'error', 'message': 'token already in use'})
+
+    app.config['PLAYER_TOKENS'][player_token] = {'name': player_name, 'id': len(app.config['PLAYER_TOKENS'])}
+    error = not e.add_player(player_name, app.config['PLAYER_TOKENS'][player_token]['id'], player_token)
+    print e.players
+    if error:
+        return jsonify({'status': 'error', 'message': 'failed to add player to engine'})
+    
+    return jsonify({'status': 'success'})
+
 @app.route('/stage', methods=['POST'])
 @player_authorize
 def stage_program(player):

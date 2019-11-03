@@ -30,6 +30,13 @@ class Engine(object):
             core_event_recorder=self.core_event_handler), players=self.players, \
             max_processes=max_processes, seconds_per_tick=self.seconds_per_tick, \
             runtime_event_handler=self.runtime_event_handler)
+
+    def add_player(self, player_name, player_id, player_token):
+        if player_id in self.players:
+            return False
+
+        self.players[player_id] = corewar.players.Player(player_name, player_id, player_token)
+        return True
         
     def core_event_handler(self, events):
         self.__socketio.emit('core_state', events)
@@ -73,7 +80,7 @@ class Engine(object):
         """
         while True:
             #TODO: allow for more players than ticks_per_round
-            target_player = self.mars.tick_count % self.ticks_per_round
+            target_player = self.mars.tick_count % max(self.ticks_per_round, len(self.players))
             if target_player in self.players:
                 print 'Loading staged data for player {}'.format(self.players[target_player])
                 self.load_staged_program(target_player)
