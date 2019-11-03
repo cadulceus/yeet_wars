@@ -7,6 +7,9 @@ class Thread(object):
         self._xd = unpack('>I', xd)[0] if isinstance(xd, (str, bytearray)) else xd
         self._dx = unpack('>I', dx)[0] if isinstance(dx, (str, bytearray)) else dx
         self.owner = owner
+        # blame represents the player id of whoever
+        self.xd_blame = owner
+        self.dx_blame = owner
         
     @property
     def xd_bytes(self):
@@ -38,12 +41,13 @@ class Thread(object):
     
 
 class Player(object):
-    def __init__(self, name, player_id, token, score=0):
+    def __init__(self, name, player_id, token, score=0, color="#0000FF"):
         self.threads = []
         self.name = name
         self.id = player_id
         self.token = token
         self.score = score
+        self.color = color
         
     def __str__(self):
-        return "Name: {} ID: {}".format(self.name, self.id)
+        return "{} ({})".format(self.name, self.id)

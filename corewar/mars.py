@@ -2,7 +2,7 @@
 # coding: utf-8
 
 from copy import copy, deepcopy
-from random import randint
+from random import randint, shuffle
 import operator, struct
 
 from core import Core
@@ -39,7 +39,8 @@ class MARS(object):
     """
 
     def __init__(self, core=None, minimum_separation=100, max_processes=10, players={}, seconds_per_tick=0, \
-        runtime_event_handler=lambda *args: None):
+        runtime_event_handler=lambda *args: None, update_thread_event_handler=lambda *args: None, \
+        kill_thread_event_handler=lambda *args: None):
         self.core = core if core else Core()
         self.minimum_separation = minimum_separation
         self.max_processes = max_processes if max_processes else len(self.core)
@@ -50,6 +51,8 @@ class MARS(object):
         self.thread_counter = 0
         self.seconds_per_tick = seconds_per_tick
         self.runtime_event_handler = runtime_event_handler
+        self.update_thread_event_handler = update_thread_event_handler
+        self.kill_thread_event_handler = kill_thread_event_handler
 
     def __iter__(self):
         return iter(self.core)
@@ -65,12 +68,14 @@ class MARS(object):
             if thread.id == thread_id:
                 self.runtime_event_handler("Killing thread in thread pool %s" % thread)
                 del self.thread_pool[idx]
+                self.kill_thread_event_handler(thread.id)
                 return
         
         for idx, thread in enumerate(self.next_tick_pool):
             if thread.id == thread_id:
                 self.runtime_event_handler("Killing thread in next tick's thread pool %s" % thread)
                 del self.next_tick_pool[idx]
+                self.kill_thread_event_handler(thread.id)
                 return
         
         raise Exception("Couldn't find player %s's oldest thread")
@@ -82,6 +87,7 @@ class MARS(object):
         self.kill_thread(self.players[player_id].threads.pop(0))
         
     def crash_thread(self, thread, message):
+        self.kill_thread_event_handler(thread.id)
         self.runtime_event_handler("====THREAD CRASH====\n%s" % message)
         self.players[thread.owner].threads.remove(thread.id)
     
@@ -120,6 +126,44 @@ class MARS(object):
             if instr.a_number == 0 or instr.a_number == 1:
                 loc = thread.xd if instr.a_number == 0 else thread.dx
                 l_val = struct.unpack('>I', self.core[loc : loc + WORD_SIZE])[0]
+            else:
+                raise yeetTimeException("register a_number is not 1 or 0", thread, instr)
+        else:
+            raise yeetTimeException("a_mode is not within usable range", thread, instr)
+        return l_val
+
+    # currently unused
+    def get_a_blame(self, instr, thread):
+        if instr.a_mode == IMMEDIATE:
+            blame = instr.owner
+        elif instr.a_mode == RELATIVE:
+            addr = (instr.a_number + thread.pc) % self.core.size
+            possible_owners = set()
+            for i in WORD_SIZE:
+                possible_owners.add(self.core.owner[(addr + i) % self.core.size])
+            possible_owners_count = len(possible_owners)
+            if possible_owners_count > 1:
+                # If there are 2 or more unique owners, return a random choice of whoever is not the thread owner
+                possible_owners = filter(lambda owner: owner != thread.owner, possible_owners)
+                shuffle(possible_owners)
+            blame = list(possible_owners)[0]
+        elif instr.a_mode == REGISTER_DIRECT:
+            if instr.a_number == 0 or instr.a_number == 1:
+                blame = thread.xd_blame if instr.a_number == 0 else thread.dx_blame
+            else:
+                raise yeetTimeException("register a_number is not 1 or 0", thread, instr)
+        elif instr.a_mode == REGISTER_INDIRECT:
+            if instr.a_number == 0 or instr.a_number == 1:
+                addr = thread.xd if instr.a_number == 0 else thread.dx
+                possible_owners = set()
+                for i in WORD_SIZE:
+                    possible_owners.add(self.core.owner[(addr + i) % self.core.size])
+                possible_owners_count = len(possible_owners)
+                if possible_owners_count > 1:
+                    # If there are 2 or more unique owners, return a random choice of whoever is not the thread owner
+                    possible_owners = filter(lambda owner: owner != thread.owner, possible_owners)
+                    shuffle(possible_owners)
+                blame = list(possible_owners)[0]
             else:
                 raise yeetTimeException("register a_number is not 1 or 0", thread, instr)
         else:
@@ -201,7 +245,8 @@ class MARS(object):
             # Move into an absolute address held by a register
             loc = thread.xd if instr.a_number == 0 else thread.dx
             self.core[loc] = struct.pack(struct_type, op(l_int, r_int) % max_size)
-            self.core.owner[loc % self.core.size] = thread.owner
+            for i in range(WORD_SIZE):
+                self.core.owner[(loc + i) % self.core.size] = thread.owner
             
     def jmp_template(self, thread, instr):
         """Simulate a generic jump instruction
@@ -209,7 +254,7 @@ class MARS(object):
         if instr.b_mode == IMMEDIATE:
             thread.pc = instr.b_number % self.core.size
         elif instr.b_mode == RELATIVE:
-            thread.pc = thread.pc + instr.b_number % self.core.size
+            thread.pc = (thread.pc + instr.b_number) % self.core.size
         elif instr.b_mode == REGISTER_DIRECT:
             loc = thread.xd if instr.b_number == 0 else thread.dx
             thread.pc = loc % self.core.size
@@ -219,6 +264,7 @@ class MARS(object):
                 struct.unpack(">I", self.core[thread.dx : thread.dx + 4])[0]
             thread.pc = loc % self.core.size
         self.next_tick_pool.append(thread)
+        self.update_thread_event_handler(thread.id, thread.pc, self.players[thread.owner].color)
         
     def syscall_handler(self, thread):
         """Parse and simulate a syscall.
@@ -258,6 +304,7 @@ class MARS(object):
             
         thread.pc = (thread.pc + 4) % self.core.size
         self.next_tick_pool.append(thread)
+        self.update_thread_event_handler(thread.id, thread.pc, self.players[thread.owner].color)
 
     def spawn_thread_from_parent(self, pc, parent):
         """Create a new thread given a parent thread and place it in the next tick's thread pool.
@@ -268,6 +315,7 @@ class MARS(object):
         self.thread_counter += 1
         self.players[parent.owner].threads.append(thread.id)
         self.next_tick_pool.append(thread)
+        self.update_thread_event_handler(thread.id, thread.pc, self.players[thread.owner].color)
     
     def spawn_new_thread(self, thread):
         """Create a new thread given a thread object and place it in the current thread pool."""
@@ -277,12 +325,14 @@ class MARS(object):
             self.thread_counter += 1
         self.players[thread.owner].threads.append(thread.id)
         self.thread_pool.insert(0, thread)
+        self.update_thread_event_handler(thread.id, thread.pc, self.players[thread.owner].color)
         
     def tick(self):
         "Simulate one step for each thread in the thread pool"
         pool_size = len(self.thread_pool)
         if not pool_size:
             sleep(self.seconds_per_tick)
+            
         while self.thread_pool:
             self.step(float(self.seconds_per_tick)/pool_size)
         self.thread_pool = self.next_tick_pool
@@ -305,6 +355,10 @@ class MARS(object):
         
         opc = instr.opcode
         
+        self.players[thread.owner].score += 1
+        if sleep_length:
+            sleep(sleep_length)
+            
         # copy the current instruction to the instruction register
         try:
             if (instr.a_mode == REGISTER_DIRECT or instr.a_mode == REGISTER_INDIRECT) and instr.a_number not in [0, 1]:
@@ -398,5 +452,4 @@ class MARS(object):
         # Any instructions that altered control flow should have prematurely returned
         thread.pc = (thread.pc + INSTRUCTION_WIDTH) % self.core.size
         self.next_tick_pool.append(thread)
-        if sleep_length:
-            sleep(sleep_length)
+        self.update_thread_event_handler(thread.id, thread.pc, self.players[thread.owner].color)
