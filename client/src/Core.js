@@ -7,7 +7,7 @@ const styles = theme => ({
   grid: {
     display: 'flex',
     'flex-direction': 'row',
-    'justify-content': 'center',
+    'justify-content': 'left',
     'align-items': 'baseline',
     'width': '100%',
     'box-sizing': 'border-box',
@@ -28,6 +28,8 @@ class Core extends Component {
     this.state = {
       socket: io(':5000'),
       core_state: [],
+      thread_states: {},
+      thread_locs: {}
     }
   }
 
@@ -37,9 +39,35 @@ class Core extends Component {
     socket.on('connect', () => {
       console.log("Connected!");
     });
+
+    socket.on('update_thread', thread_update => {
+      var new_thread_states = JSON.parse(JSON.stringify(this.state.thread_states));
+      var new_thread_locs = JSON.parse(JSON.stringify(this.state.thread_locs));
+      // first remove its old location in thread_locs
+      for (var loc in new_thread_locs) {
+        // search for the previous location of the thread ID in thread_locs
+        if (new_thread_locs.hasOwnProperty(loc) && new_thread_locs[loc] === thread_update[0]) {
+            delete new_thread_locs[loc];
+        }
+    }
+      new_thread_states[thread_update[0]] = [thread_update[1], thread_update[2]];
+      new_thread_locs[thread_update[1]] = thread_update[0];
+      this.setState({ thread_states: new_thread_states, thread_locs: new_thread_locs});
+    });
+
+    socket.on('kill_thread', thread_id => {
+      var new_thread_states = JSON.parse(JSON.stringify(this.state.thread_states));
+      var new_thread_locs = JSON.parse(JSON.stringify(this.state.thread_locs));
+      delete new_thread_locs[new_thread_states[thread_id][0]];
+      delete new_thread_states[thread_id];
+      this.setState({ thread_states: new_thread_states, thread_locs: new_thread_locs});
+    });
     
-    socket.on('connection', core => {
-      this.setState({ core_state: core });
+    socket.on('core_connection', core => {
+      var colified_core = core.map(byte => {
+        return "#" + (255 - byte).toString(16).repeat(3);
+      });
+      this.setState({ core_state: colified_core });
     });
 
     socket.on('disconnect', () => {
@@ -47,29 +75,33 @@ class Core extends Component {
     });
 
     socket.on('core_state', updates => {
-      console.log(updates);
       var core = JSON.parse(JSON.stringify(this.state.core_state));
       updates.forEach(update => {
-        core[update[0]] = update[1];
+        core[update[0]] = "#" + (255 - update[1]).toString(16).repeat(3);
       });
       this.setState({ core_state: core });
     });
   }
 
-  componentWillUnmount() {
-    const { socket } = this.state;
-    console.log('Leaving');
-  }
-
   render() {
     const { classes } = this.props;
     const { core_state } = this.state;
+    const { thread_states } = this.state;
+    const { thread_locs } = this.state;
 
     return (
       <div className={classes.grid}>
           {core_state.map((data, idx) =>
-            <div key={idx} className="box" style={{backgroundColor: "#" + (255 - data).toString(16).repeat(3)}}>
-            </div>  
+            {
+              if (!(idx in thread_locs)) {
+                return <div key={idx} className="box" style={{backgroundColor: data}}>
+                </div>
+              }
+              else {
+                return <div key={idx} className="box" style={{backgroundColor: thread_states[thread_locs[idx]][1]}}>
+                </div>
+              }
+            } 
           )}
         </div>
     );
