@@ -84,7 +84,6 @@ class Engine(object):
         bytes into a random location in the cores memory
         """
         if player_id not in self.staged_payloads.keys() or self.staged_payloads[player_id] == []:
-            print "nothing staged for player %s" % self.players[player_id]
             return
         
         try:
@@ -127,6 +126,6 @@ class Engine(object):
             for player in self.players:
                 current_scores.append(["%s: %s" % (str(self.players[player]), self.players[player].score), \
                     self.float_to_hex_colors(self.players[player].color)])
-            print current_scores, "\n==========================\n"
             self.__socketio.emit('player_scores', current_scores)
             for thread in self.mars.thread_pool: print thread
+            print "\n==========================\n"

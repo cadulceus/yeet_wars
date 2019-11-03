@@ -58,19 +58,12 @@ class Core extends Component {
     socket.on('kill_thread', thread_id => {
       var new_thread_states = JSON.parse(JSON.stringify(this.state.thread_states));
       var new_thread_locs = JSON.parse(JSON.stringify(this.state.thread_locs));
-      console.log(new_thread_states);
-      console.log(new_thread_states[thread_id][0]);
-      console.log(new_thread_locs)
       delete new_thread_locs[new_thread_states[thread_id][0]];
       delete new_thread_states[thread_id];
-      
-      console.log(new_thread_states);
-      console.log(new_thread_locs)
       this.setState({ thread_states: new_thread_states, thread_locs: new_thread_locs});
     });
     
     socket.on('core_connection', core => {
-      console.log(core)
       var colified_core = core.map(byte => {
         return "#" + (255 - byte).toString(16).repeat(3);
       });
@@ -82,7 +75,6 @@ class Core extends Component {
     });
 
     socket.on('core_state', updates => {
-      console.log(updates);
       var core = JSON.parse(JSON.stringify(this.state.core_state));
       updates.forEach(update => {
         core[update[0]] = "#" + (255 - update[1]).toString(16).repeat(3);
