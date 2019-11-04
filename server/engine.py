@@ -14,7 +14,7 @@ class Engine(object):
     def __init__(self, socketio=None, seconds_per_tick=10,
                  staging_file='staging.json', ticks_per_round=20,
                  core_size=8192, load_interval=200,
-                 players={"0": "User0"}, max_processes=10, max_staging_size=50):
+                 players=[{'name': 'User0', 'token': 'token1'}], max_processes=10, max_staging_size=50):
         self.__socketio = socketio
         self.seconds_per_tick = seconds_per_tick
         self.staging_file = staging_file
@@ -27,15 +27,14 @@ class Engine(object):
         for i in range(len(players)):
             self.used_colors.append(self.generate_new_color(self.used_colors))
         for idx, player in enumerate(players):
-            self.players[int(idx)] = corewar.players.Player(player, int(idx), players[player], color=self.used_colors[idx])
+            self.players[idx] = corewar.players.Player(player['name'], idx, player['token'], color=self.used_colors[idx])
 
         self.mars = corewar.mars.MARS(corewar.core.Core(size=core_size, \
             core_event_recorder=self.core_event_handler), players=self.players, \
             max_processes=max_processes, seconds_per_tick=self.seconds_per_tick, \
             runtime_event_handler=self.runtime_event_handler, update_thread_event_handler=self.update_thread_event_handler, \
             kill_thread_event_handler=self.kill_thread_event_handler)
-
-
+  
     #TODO: these color functions should really be broken out 
     def get_random_color(self, pastel_factor = 0.5):
         return [(x+pastel_factor)/(1.0+pastel_factor) for x in [random.uniform(0,1.0) for i in [1,2,3]]]
@@ -59,7 +58,13 @@ class Engine(object):
     def float_to_hex_colors(self, color):
         hexified_colors = [hex(int(255 * percentage))[2:] for percentage in color]
         return "#" + "".join(hexified_colors)
-        
+
+    def add_player(self, player_name, player_id, player_token):
+        if player_id in self.players:
+            return False
+
+        self.players[player_id] = corewar.players.Player(player_name, player_id, player_token)
+        return True
         
     def core_event_handler(self, events):
         self.__socketio.emit('core_state', events)
@@ -118,7 +123,7 @@ class Engine(object):
         """
         while True:
             #TODO: allow for more players than ticks_per_round
-            target_player = self.mars.tick_count % self.ticks_per_round
+            target_player = self.mars.tick_count % max(self.ticks_per_round, len(self.players))
             if target_player in self.players:
                 self.load_staged_program(target_player)
             self.mars.tick()

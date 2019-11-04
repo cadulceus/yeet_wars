@@ -330,7 +330,7 @@ class MARS(object):
     def tick(self):
         "Simulate one step for each thread in the thread pool"
         pool_size = len(self.thread_pool)
-        if pool_size == 0:
+        if not pool_size:
             sleep(self.seconds_per_tick)
             
         while self.thread_pool:
