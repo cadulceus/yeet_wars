@@ -10,7 +10,7 @@ The key differences are:
 
 # How To Play
 At the start of a yeet wars game, memory is initialized to null bytes and nothing starts out in memory (the 'core'). Players are loaded in but do not have any active threads.  
-At any point in time, players in the game can "stage" a snippet of assembly limited to a certain amount of lines (default 50). At a regular interval determined by the player's player id, that player's staging payload will be assembled and loaded into the core, and a new thread will be spawned for that player at the beginning of the payload. If the player already has more than the maximum configured amount of threads (default 10), their oldest thread will be killed to make space.  
+At any point in time, players in the game can "stage" a snippet of assembly limited to a certain amount of lines (default 50). At a regular interval determined by the player's player id, that player's staging payload will be assembled and loaded into a random offset in the core that is divisible by 200, and a new thread will be spawned for that player at the beginning of the payload. If the player already has more than the maximum configured amount of threads (default 10), their oldest thread will be killed to make space.  
 Staging payloads are loaded in every N 'ticks' (default 20), where one tick is the completion of one execution cycle for every thread that was in the thread pool. To allow for player reactions, each tick takes N seconds to complete (default 20), with each cycle taking an equal fraction of that time to compute.  
 For every thread that a player owns, they will receive 1 point every time that thread executes a cycle.  
   
@@ -52,3 +52,28 @@ Syscall numbers:
 TRANSFER_OWNERSHIP      = 1 # transfer ownership of the current thread to the player ID specified by DX  
 LOCATE_NEAREST_THREAD   = 2 # return the location of the nearest thread of a different owner in DX  
 ```
+Additionally, the assembler will allow for inline bytes, for example:  
+```
+0x0E000000 // assembled bytes for "NOPE"
+YEET #0, #4  
+```
+  
+  
+# Quick Setup
+Make sure python is python2:  
+```
+pip install -r requirements.txt
+cd client
+npm install
+npm start&
+cd ../
+YEET_CONFIG_FILE=csaw_config.json python server/server.py
+```
+
+FAQ:
+**Your code is bad**
+* Yes. PRs welcome
+**You should feel bad**
+* I do
+**Is this hosted somewhere currently?**
+* No

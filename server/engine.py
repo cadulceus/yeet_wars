@@ -35,7 +35,8 @@ class Engine(object):
             runtime_event_handler=self.runtime_event_handler, update_thread_event_handler=self.update_thread_event_handler, \
             kill_thread_event_handler=self.kill_thread_event_handler)
   
-    #TODO: these color functions should really be broken out 
+    # TODO: these color functions should really be broken out 
+    # code for color generation taken from https://gist.github.com/adewes/5884820 
     def get_random_color(self, pastel_factor = 0.5):
         return [(x+pastel_factor)/(1.0+pastel_factor) for x in [random.uniform(0,1.0) for i in [1,2,3]]]
 

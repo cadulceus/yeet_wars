@@ -62,13 +62,10 @@ class Core extends Component {
       }
       new_thread_states[id] = [pc, color];
       new_thread_locs[pc] = id;
-      console.log(new_thread_states);
-      console.log(new_thread_locs);
       this.setState({ thread_states: new_thread_states, thread_locs: new_thread_locs});
     });
 
     socket.on('kill_thread', thread_id => {
-      console.log('killing thread', thread_id);
       const { thread_states, thread_locs } = this.state;
 
       this.setState({

@@ -47,7 +47,7 @@ if config_file and os.path.isfile(config_file):
         print config
 else:
     config = env_vars
-
+    
 app.config['ADMIN_TOKEN'] = config.pop('admin_token').lower()
 app.config['PLAYER_TOKENS'] = {}
 if 'players' in config:
@@ -63,7 +63,7 @@ def admin_authorize(f):
             abort(401)
 
         data = request.headers['Authorization'].encode('ascii', 'ignore')
-        token = data.lower().replace('bearer: ', '')
+        token = data.lower().replace('bearer ', '')
         if token != app.config['ADMIN_TOKEN']:
             abort(401)
         return f(*args, **kwargs)
@@ -76,7 +76,7 @@ def player_authorize(f):
             abort(401)
 
         data = request.headers['Authorization'].encode('ascii', 'ignore')
-        token = data.lower().replace('bearer: ', '')
+        token = data.lower().replace('bearer ', '')
         if token not in app.config['PLAYER_TOKENS']:
             abort(401)
         player = app.config['PLAYER_TOKENS'][token]
@@ -144,7 +144,7 @@ def stage_program(player):
     Example:
     $ curl \
         -H 'content-type: application/json' \
-        -H 'Authorization: Bearer: token1' \
+        -H 'Authorization: Bearer token1' \
         -d '{"instructions": "YEET #0, #4"}' \
         -XPOST localhost:5000/stage
     {"status":"success"} 
