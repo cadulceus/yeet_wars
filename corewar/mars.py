@@ -85,7 +85,7 @@ class MARS(object):
             print "Player has no threads"
             return
         self.kill_thread(self.players[player_id].threads.pop(0))
-        
+
     def crash_thread(self, thread, message):
         self.kill_thread_event_handler(thread.id)
         self.runtime_event_handler("====THREAD CRASH====\n%s" % message)
