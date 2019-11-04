@@ -88,8 +88,8 @@ class Instruction(object):
             self.b_mode = MODES[b_mode] if isinstance(b_mode, str) else b_mode
         else:
             self.b_mode = IMMEDIATE
-        self._a_number = a_number if a_number else 0
-        self._b_number = b_number if b_number else 0
+        self._a_number = a_number % 256 if a_number else 0
+        self._b_number = b_number % 65536 if b_number else 0
 
         self.core = None
     
