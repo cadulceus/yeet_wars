@@ -58,8 +58,10 @@ class Core extends Component {
     socket.on('kill_thread', thread_id => {
       var new_thread_states = JSON.parse(JSON.stringify(this.state.thread_states));
       var new_thread_locs = JSON.parse(JSON.stringify(this.state.thread_locs));
-      delete new_thread_locs[new_thread_states[thread_id][0]];
-      delete new_thread_states[thread_id];
+      if (thread_id in new_thread_locs) {
+        delete new_thread_locs[new_thread_states[thread_id][0]];
+        delete new_thread_states[thread_id];
+      }
       this.setState({ thread_states: new_thread_states, thread_locs: new_thread_locs});
     });
     

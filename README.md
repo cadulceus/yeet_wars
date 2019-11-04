@@ -1,55 +1,48 @@
 
-# Core War
+# Yeet Wars
 
-[![Build Status](https://travis-ci.org/rodrigosetti/corewar.svg?branch=master)](https://travis-ci.org/rodrigosetti/corewar)
+This is a heavily modified fork of a [pure python core war implementation](https://github.com/rodrigosetti/corewar) of core wars ([Wikipedia article](http://en.wikipedia.org/wiki/Core_War)).
+The key differences are:
+* Yeet Wars instructions are assembled into 4 byte fixed width instructions and execute on a virtual memory space
+* Yeet Wars is intended to be played in real time
+* Yeet Wars is score based
+* In Yeet Wars, players are never completely eliminated for the duration of the game
 
-The Canadian mathematician A. K. Dewdney (author of "The Planiverse") first
-introduced Core War in a series of Scientific American articles
-starting in 1984.
+# How To Play
+At the start of a yeet wars game, memory is initialized to null bytes and nothing starts out in memory (the 'core'). Players are loaded in but do not have any active threads.
+At any point in time, players in the game can "stage" a snippet of assembly limited to a certain amount of lines (default 50). At a regular interval determined by the player's player id, that player's staging payload will be assembled and loaded into the core, and a new thread will be spawned for that player at the beginning of the payload. If the player already has more than the maximum configured amount of threads (default 10), their oldest thread will be killed to make space.
+Staging payloads are loaded in every N 'ticks' (default 20), where one tick is the completion of one execution cycle for every thread that was in the thread pool. To allow for player reactions, each tick takes N seconds to complete (default 20), with each cycle taking an equal fraction of that time to compute.
+For every thread that a player owns, they will receive 1 point every time that thread executes a cycle.
 
-> Core War was inspired by a story I heard some years ago about a mischievous
-> programmer at a large corporate research laboratory I shall designate X. The
-> programmer wrote an assembly-language program called Creeper that would
-> duplicate itself every time it was run. It could also spread from one
-> computer to another in the network of the X corporation. The program had no
-> function other than to perpetuate itself. Before long there were so many
-> copies of Creeper that more useful programs and data were being crowded out.
-> The growing infestation was not brought under control until someone thought
-> of fighting fire with fire. A second self-duplicating program called Reaper
-> was written.  Its purpose was to destroy copies of Creeper until it could
-> find no more and then to destroy itself. Reaper did its job, and things were
-> soon back to normal at the X lab.
+# Yeet Assembly
+Instructions are generally structured as `<instruction> <left hand argument>, <right hand argument>`
+unary instructions are formatted as `<instruction> <argument>`
+The instruction type is encoded in the first nibble of the first byte of the instruction
+YEET      = 1     # move from A to B
+YOINK     = 2     # add A to B, store result in B
+SUB       = 3     # subtract A from B, store result in B
+MUL       = 4     # multiply A by B, store result in B
+DIV       = 5     # divide B by A, store result in B if A <> 0, else terminate
+FITS       = 6     # divide B by A, store remainder in B if A <> 0, else terminate
+BOUNCE    = 7     # transfer execution to B (unary instruction)
+BOUNCEZ   = 8     # transfer execution to B if A is zero
+BOUNCEN   = 9     # transfer execution to B if A is non-zero
+BOUNCED   = 10    # decrement A, if A is non-zero, transfer execution to B
+ZOOP      = 11    # split off process to B (unary instruction)
+NOPE      = 14     # No operation (no arguments) e.x. `NOPE`
+YEETCALL  = 15    # System call (no arguments), e.x. `YEETCALL` arguments are passed to yeetcall via the XD and DX registers. XD identifies the syscall number, while DX is the optional argument
 
-In this game, computer programs (called "Warriors") compete in a virtual arena
-for digital supremacy. Warriors are written in an Assembly dialect called
-"Redcode".
+These values are encoded in the instruction as the a_number or b_number
+XD_REGISTER = 0
+DX_REGISTER = 1
 
-[Wikipedia article](http://en.wikipedia.org/wiki/Core_War)
+The mode being used for the a_number and b_number are encoded in the last nibble of the first byte of the instruction
+For immediate and relative instructions, the value is encoded in the 2nd byte of the instruction when used as the a_number (left hand operand), or the 3rd and 4th byte when used as the b_number (right hand operand). This means that an immediate or relative value is limited to a maximum value of 255 in the left hand or 65535 for the right hand
+IMMEDIATE         = 0   # immediate (Note that if an instruction expecting an address is given an immediate value, the immediate is treated as an absolute address)
+RELATIVE          = 1   # relative
+REGISTER_DIRECT   = 2   # Register direct
+REGISTER_INDIRECT = 3   # Register indirect (value of the register is treated as a pointer)
 
-This is a Python implementation of the MARS (Memory Array Redcode Simulator).
-
-    usage: graphics.py [-h] [--rounds [ROUNDS]] [--paused] [--size [CORESIZE]]
-                       [--cycles [CYCLES]] [--processes [MAXPROCESSES]]
-                       [--length [MAXLENGTH]] [--distance [MINDISTANCE]]
-                       WARRIOR [WARRIOR ...]
-
-    MARS (Memory Array Redcode Simulator)
-
-    positional arguments:
-      WARRIOR               Warrior redcode filename
-
-    optional arguments:
-      -h, --help            show this help message and exit
-      --rounds [ROUNDS], -r [ROUNDS]
-                            Rounds to play
-      --paused              Start each round paused
-      --size [CORESIZE], -s [CORESIZE]
-                            The core size
-      --cycles [CYCLES], -c [CYCLES]
-                            Cycles until tie
-      --processes [MAXPROCESSES], -p [MAXPROCESSES]
-                            Max processes
-      --length [MAXLENGTH], -l [MAXLENGTH]
-                            Max warrior length
-      --distance [MINDISTANCE], -d [MINDISTANCE]
-                            Minimum warrior distance
+Syscall numbers:
+TRANSFER_OWNERSHIP      = 1 # transfer ownership of the current thread to the player ID specified by DX
+LOCATE_NEAREST_THREAD   = 2 # return the location of the nearest thread of a different owner in DX
