@@ -1,5 +1,5 @@
 from flask import Flask, abort, jsonify, request
-from flask_socketio import SocketIO, emit, disconnect
+from flask_socketio import SocketIO, emit, disconnect, join_room
 from functools import wraps
 import corewar.yeetcode
 import engine
@@ -164,11 +164,16 @@ def stage_program(player):
 @socketio.on('connect')
 def connected_client():
   token = request.args.get('token')
-  if token not in app.config['PLAYER_TOKENS']:
+  if token in app.config['PLAYER_TOKENS']:
+    join_room('player')
+  elif token == app.config['ADMIN_TOKEN']:
+    join_room('admin')
+    join_room('player')
+  else:
     disconnect()
 
-  emit('core_connection', list(e.mars.core.bytes))
-  emit('event_connection', "Events feed loaded")
+  emit('core_connection', list(e.mars.core.bytes), room='admin')
+  emit('event_connection', "Events feed loaded", room='player')
 
 
 if __name__ == '__main__':

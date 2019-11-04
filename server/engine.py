@@ -68,16 +68,16 @@ class Engine(object):
         return True
         
     def core_event_handler(self, events):
-        self.__socketio.emit('core_state', events)
+        self.__socketio.emit('core_state', events, room='admin')
         
     def update_thread_event_handler(self, pid, pc, color):
-        self.__socketio.emit('update_thread', [pid, pc, self.float_to_hex_colors(color)])
+        self.__socketio.emit('update_thread', [pid, pc, self.float_to_hex_colors(color)], room='admin')
         
     def kill_thread_event_handler(self, events):
-        self.__socketio.emit('kill_thread', events)
+        self.__socketio.emit('kill_thread', events, room='admin')
         
     def runtime_event_handler(self, events):
-        self.__socketio.emit('events', "Cycle number: %s\n%s\n\n%s" % (self.mars.tick_count, events, time.ctime(time.time())))
+        self.__socketio.emit('events', "Cycle number: %s\n%s\n\n%s" % (self.mars.tick_count, events, time.ctime(time.time())), room='player')
 
     def save_payload_to_disk(self, payload):
         with open("history.txt", "a+") as w:
@@ -132,6 +132,6 @@ class Engine(object):
             for player in self.players:
                 current_scores.append(["%s: %s" % (str(self.players[player]), self.players[player].score), \
                     self.float_to_hex_colors(self.players[player].color)])
-            self.__socketio.emit('player_scores', current_scores)
+            self.__socketio.emit('player_scores', current_scores, 'player')
             for thread in self.mars.thread_pool: print thread
             print "\n==========================\n"
