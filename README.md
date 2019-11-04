@@ -73,7 +73,9 @@ YEET_CONFIG_FILE=sample_config.json python server/server.py
 FAQ:  
 **Your code is bad**  
 * Yes. PRs welcome  
+
 **You should feel bad**  
 * I do  
+
 **Is this hosted somewhere currently?**  
 * No  
