@@ -30,16 +30,19 @@ class Events extends Component {
   constructor(props) {
     super(props);
 
-
     this.state = {
-      socket: io(':5000'),
+      socket: null,
       events: [],
       scores: []
     };
   }
 
   componentDidMount(){
-    const { socket } = this.state;
+    const { token } = this.props;
+
+    const socket = io(':5000', {
+      query: `token=${token}`,
+    });
 
     socket.on('connect', () => {
       console.log("Connected to events!");
@@ -60,7 +63,10 @@ class Events extends Component {
 
     socket.on('disconnect', () => {
       // TODO: add a boundary to check for disconnect and render a "disconnected" error
+      console.log('disconnected');
     });
+
+    this.setState({ socket });
   }
 
   render() {

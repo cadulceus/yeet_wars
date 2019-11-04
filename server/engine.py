@@ -62,8 +62,9 @@ class Engine(object):
     def add_player(self, player_name, player_id, player_token):
         if player_id in self.players:
             return False
-
-        self.players[player_id] = corewar.players.Player(player_name, player_id, player_token)
+        new_color = self.generate_new_color(self.used_colors)
+        self.players[player_id] = corewar.players.Player(player_name, player_id, player_token, color=new_color)
+        self.used_colors.append(new_color)
         return True
         
     def core_event_handler(self, events):

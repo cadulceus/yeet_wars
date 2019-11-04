@@ -1,5 +1,5 @@
 from flask import Flask, abort, jsonify, request
-from flask_socketio import SocketIO, emit
+from flask_socketio import SocketIO, emit, disconnect
 from functools import wraps
 import corewar.yeetcode
 import engine
@@ -162,8 +162,11 @@ def stage_program(player):
     return jsonify({'status': 'success'})
   
 @socketio.on('connect')
-@admin_authorize
 def connected_client():
+  token = request.args.get('token')
+  if token not in app.config['PLAYER_TOKENS']:
+    disconnect()
+
   emit('core_connection', list(e.mars.core.bytes))
   emit('event_connection', "Events feed loaded")
 

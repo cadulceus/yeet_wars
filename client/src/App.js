@@ -2,42 +2,34 @@ import React, { Component } from 'react';
 import { BrowserRouter as Router, Switch, Route, Link } from 'react-router-dom';
 import Core from './Core';
 import Events from './Events';
+import { withStyles } from '@material-ui/core';
 
-// const styles = theme => ({
-//   root: {
-//     display: 'flex',
-//     'flex-direction': 'column',
-//     'align-items': 'baseline',
-//     'justify-content': 'center',
-//   },
-//   title: {
-//     width: '100%',
-//     display: 'flex',
-//     'justify-content': 'center',
-//     'font-size': "32px",
-    
-//     'padding': '1em',
-//   },
-//   grid: {
-//     display: 'flex',
-//     'flex-direction': 'row',
-//     'justify-content': 'center',
-//     'align-items': 'baseline',
-//     'width': '100%',
-//     'box-sizing': 'border-box',
-//     'flex-wrap': 'wrap',
-//     padding: '1em',
-
-//     '& > div': {
-//       width: '20px',
-//       'height': '20px',
-//     },
-//   },
-// });
+const styles = theme => ({
+  bigForm: {
+    width: '100%',
+    height: '100vh',
+    display: 'flex',
+    'flex-direction': 'column',
+    'justify-content': 'center',
+    'align-items': 'center',
+    'font-size': '32px',
+  },
+});
 
 
 class App extends Component {
   render() {
+    const query = new URLSearchParams(window.location.search);
+    const token = query.get('token');
+
+    const { classes } = this.props;
+
+    if (!token) return (
+      <form className={classes.bigForm}>
+        <label htmlFor="token">Token</label>
+        <input type="text" name="token" />
+      </form>
+    );
 
     return(
       <Router>
@@ -45,7 +37,7 @@ class App extends Component {
           <nav>
             <ul>
               <li>
-                <Link to="/">Core</Link>
+                <a href="/">Core</a>
               </li>
               <li>
                 <Link to="/events">Events</Link>
@@ -55,10 +47,10 @@ class App extends Component {
 
           <Switch>
             <Route exact path="/">
-              <Core />
+              <Core token={token} />
             </Route>
             <Route exact path="/events">
-              <Events />
+              <Events token={token} />
             </Route>
           </Switch>
         </div>
@@ -67,4 +59,4 @@ class App extends Component {
   }
 }
 
-export default App;
+export default withStyles(styles)(App);

@@ -26,7 +26,7 @@ class Core extends Component {
     super(props);
 
     this.state = {
-      socket: io(':5000'),
+      socket: null,
       core_state: [],
       thread_states: {},
       thread_locs: {}
@@ -34,10 +34,22 @@ class Core extends Component {
   }
 
   componentDidMount(){
-    const { socket } = this.state;
+    const { token } = this.props;
+
+    const socket = io(':5000', {
+      query: `token=${token}`,
+    });
+
+    if (!socket.connected) { 
+      console.log("Bad");
+    }
 
     socket.on('connect', () => {
       console.log("Connected!");
+    });
+
+    socket.on('disconnect', () => {
+      console.log('Disconnected');
     });
 
     socket.on('update_thread', thread_update => {
@@ -64,7 +76,7 @@ class Core extends Component {
       }
       this.setState({ thread_states: new_thread_states, thread_locs: new_thread_locs});
     });
-    
+
     socket.on('core_connection', core => {
       var colified_core = core.map(byte => {
         return "#" + (255 - byte).toString(16).repeat(3);
@@ -72,24 +84,22 @@ class Core extends Component {
       this.setState({ core_state: colified_core });
     });
 
-    socket.on('disconnect', () => {
-      // TODO: add a boundary to check for disconnect and render a "disconnected" error
-    });
-
     socket.on('core_state', updates => {
-      var core = JSON.parse(JSON.stringify(this.state.core_state));
+      var core = [...this.state.core_state];
       updates.forEach(update => {
         core[update[0]] = "#" + (255 - update[1]).toString(16).repeat(3);
       });
+
       this.setState({ core_state: core });
     });
+    
+
+    this.setState({ socket });
   }
 
   render() {
     const { classes } = this.props;
-    const { core_state } = this.state;
-    const { thread_states } = this.state;
-    const { thread_locs } = this.state;
+    const { core_state, thread_locs, thread_states } = this.state;
 
     return (
       <div className={classes.grid}>
