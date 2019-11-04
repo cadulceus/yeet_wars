@@ -265,7 +265,64 @@ class MARS(object):
             thread.pc = loc % self.core.size
         self.next_tick_pool.append(thread)
         self.update_thread_event_handler(thread.id, thread.pc, self.players[thread.owner].color)
+    
+    def yeb_template(self, thread, instr):
+        """Simulate a generic xchg instruction
+        """
+        l_val = self.get_a_int(instr, thread)
+        r_val = self.get_b_int(instr, thread)
+
+        # Resolve A value based on mode
+        if instr.a_mode == IMMEDIATE:
+            deref_lval = self.core[l_val : l_val + 4]
+        elif instr.a_mode == RELATIVE:
+            deref_lval = struct.pack(">I", l_val)
+        elif instr.a_mode == REGISTER_DIRECT:
+            deref_lval = struct.pack(">I", thread.xd) if instr.a_number == XD_REGISTER else \
+                struct.pack(">I", thread.dx)
+        else:
+            deref_lval = struct.pack(">I", l_val)
+
+        # Resolve B value based on mode
+        if instr.b_mode == IMMEDIATE:
+            deref_rval = self.core[r_val : r_val + 4]
+        elif instr.b_mode == RELATIVE:
+            deref_rval = struct.pack(">I", r_val)
+        elif instr.b_mode == REGISTER_DIRECT:
+            deref_rval = struct.pack(">I", thread.xd) if instr.b_number == XD_REGISTER else \
+                struct.pack(">I", thread.dx)
+        else:
+            deref_rval = struct.pack(">I", r_val)
+
+        # Set A value based on mode
+        if instr.a_mode == IMMEDIATE:
+            self.core[l_val] = deref_rval
+        elif instr.a_mode == RELATIVE:
+            self.core[instr.a_number + thread.pc] = deref_rval
+        elif instr.a_mode == REGISTER_DIRECT:
+            if instr.a_number == XD_REGISTER:
+                thread.xd = struct.unpack(">I", deref_rval)[0]
+            else:
+                thread.dx = struct.unpack(">I", deref_rval)[0]
+        else:
+            loc = thread.xd if instr.a_number == XD_REGISTER else thread.dx
+            self.core[loc] = deref_rval
+
+        # Set B value based on mode
+        if instr.b_mode == IMMEDIATE:
+            self.core[r_val] = deref_lval
+        elif instr.b_mode == RELATIVE:
+            self.core[instr.b_number + thread.pc] = deref_lval
+        elif instr.b_mode == REGISTER_DIRECT:
+            if instr.b_number == XD_REGISTER:
+                thread.xd = struct.unpack(">I", deref_lval)[0]
+            else:
+                thread.dx = struct.unpack(">I", deref_lval)[0]
+        else:
+            loc = thread.xd if instr.b_number == XD_REGISTER else thread.dx
+            self.core[loc] = deref_lval
         
+
     def syscall_handler(self, thread):
         """Parse and simulate a syscall.
         Syscalls are given arguments by the contents of XD and DX.
@@ -438,6 +495,9 @@ class MARS(object):
                 # add one more to length of thread_pool to account for the current thread thats been popped
                 if len(self.players[thread.owner].threads) < self.max_processes:
                     self.spawn_thread_from_parent(self.get_b_int(instr, thread), thread)
+            
+            elif opc == YEB:
+                self.yeb_template(thread, instr)
                     
             elif opc == YEETCALL:
                 self.syscall_handler(thread)
