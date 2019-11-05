@@ -2,7 +2,7 @@
 # coding: utf-8
 
 from copy import copy, deepcopy
-from random import randint, shuffle
+from random import randint, shuffle, choice
 import operator, struct
 
 from core import Core
@@ -243,7 +243,7 @@ class MARS(object):
                 thread.dx = struct.pack('>I', op(l_int, r_int) % max_size)
         elif instr.b_mode == REGISTER_INDIRECT:
             # Move into an absolute address held by a register
-            loc = thread.xd if instr.a_number == 0 else thread.dx
+            loc = thread.xd if instr.b_number == 0 else thread.dx
             self.core[loc] = struct.pack(struct_type, op(l_int, r_int) % max_size)
             for i in range(WORD_SIZE):
                 self.core.owner[(loc + i) % self.core.size] = thread.owner
@@ -330,7 +330,7 @@ class MARS(object):
         If a syscall errors out, it will return the string "teey" in DX.
         Current syscalls:
         01: TRANSFER_OWNERSHIP - transfer ownership of the current thread to the player ID specified by DX
-        02: LOCATE_NEAREST_THREAD - return the location of the nearest thread of a different owner in DX
+        02: LOCATE_NEAREST_THREAD - return the location of the nearest thread of a different owner in DX up to 50 bytes away
         """
         ERROR_CODE = "teey"
         num = thread.xd
@@ -345,16 +345,23 @@ class MARS(object):
             
         elif num == LOCATE_NEAREST_THREAD:
             closest_distance = self.core.size
+            max_distance = 50
             closest_pc = None
-            for t in self.thread_pool:
+            all_threads = self.thread_pool + self.next_tick_pool
+            for t in all_threads:
                 curr_distance = max(t.pc, thread.pc) - min(t.pc, thread.pc)
-                if curr_distance < closest_distance and t.owner != thread.owner:
+                if curr_distance < closest_distance and curr_distance <= max_distance:
                     closest_distance = curr_distance
                     closest_pc = t.pc
             if closest_pc:
                 thread.dx = closest_pc
             else:
                 thread.dx = ERROR_CODE
+            
+        elif num == LOCATE_RANDOM_THREAD:
+            closest_distance = self.core.size
+            all_threads = self.thread_pool + self.next_tick_pool
+            thread.dx = choice(all_threads).pc
                 
         else:
             thread.dx = ERROR_CODE

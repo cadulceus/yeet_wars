@@ -24,13 +24,14 @@ YOINK     = 2     # add A to B, store result in B
 SUB       = 3     # subtract A from B, store result in B  
 MUL       = 4     # multiply A by B, store result in B  
 DIV       = 5     # divide B by A, store result in B if A <> 0, else terminate  
-FITS       = 6     # divide B by A, store remainder in B if A <> 0, else terminate  
+FITS      = 6     # divide B by A, store remainder in B if A <> 0, else terminate  
 BOUNCE    = 7     # transfer execution to B (unary instruction)  
 BOUNCEZ   = 8     # transfer execution to B if A is zero  
 BOUNCEN   = 9     # transfer execution to B if A is non-zero  
 BOUNCED   = 10    # decrement A, if A is non-zero, transfer execution to B  
 ZOOP      = 11    # split off process to B (unary instruction)  
-NOPE      = 14     # No operation (no arguments)   
+YEB       = 12    # exchanges A with B
+NOPE      = 14    # No operation (no arguments)   
 YEETCALL  = 15    # System call (no arguments), arguments are passed to yeetcall via the XD and DX registers. XD identifies the syscall number, while DX is the optional argument  
 ```
 These values are encoded in the instruction as the a_number or b_number  
@@ -57,7 +58,7 @@ Additionally, the assembler will allow for inline bytes, for example:
 0x0E000000 // assembled bytes for "NOPE"
 YEET #0, #4  
 ```
-  
+
   
 # Quick Setup
 Make sure python is python2:  
