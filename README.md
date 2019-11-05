@@ -34,6 +34,7 @@ YEB       = 12    # exchanges A with B
 NOPE      = 14    # No operation (no arguments)   
 YEETCALL  = 15    # System call (no arguments), arguments are passed to yeetcall via the XD and DX registers. XD identifies the syscall number, while DX is the optional argument  
 ```
+Note that for any MOV-like instructions (YEET, YOINK, SUB, etc.) with an immediate as the src is an implicit movb, with the exception of register direct  
 These values are encoded in the instruction as the a_number or b_number  
 ```
 XD_REGISTER = 0  
@@ -47,18 +48,19 @@ IMMEDIATE         = 0   # immediate (Note that if an instruction expecting an ad
 RELATIVE          = 1   # relative  
 REGISTER_DIRECT   = 2   # Register direct  
 REGISTER_INDIRECT = 3   # Register indirect (value of the register is treated as a pointer)  
-``` 
+```
 Syscall numbers:  
 ```
 TRANSFER_OWNERSHIP      = 1 # transfer ownership of the current thread to the player ID specified by DX  
 LOCATE_NEAREST_THREAD   = 2 # return the location of the nearest thread of a different owner in DX  
+LOCATE_RANDOM_THREAD    = 3 # return the location of a random tactive thread in DX  
 ```
 Additionally, the assembler will allow for inline bytes, for example:  
 ```
 0x0E000000 // assembled bytes for "NOPE"
 YEET #0, #4  
 ```
-
+Finally, any addressing that goes out of the core loops back to the beginning. For example, if the core were 100 bytes long and `YEET $255, $150` is executed, then core[50] will be set to 0xFF
   
 # Quick Setup
 Make sure python is python2:  
