@@ -15,8 +15,8 @@ const styles = theme => ({
     padding: '1em',
 
     '& > div': {
-      width: '20px',
-      'height': '20px',
+      width: '12px',
+      'height': '12px',
     },
   },
 });
@@ -90,6 +90,7 @@ class Core extends Component {
 
     socket.on('core_state', updates => {
       var core = [...this.state.core_state];
+      console.log(updates)
       updates.forEach(update => {
         core[update[0]] = "#" + (255 - update[1]).toString(16).repeat(3);
       });
