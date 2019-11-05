@@ -133,6 +133,8 @@ class Engine(object):
             for player in self.players:
                 current_scores.append(["%s: %s" % (str(self.players[player]), self.players[player].score), \
                     self.float_to_hex_colors(self.players[player].color)])
+            # Shitty hack to show the current tick count
+            current_scores.append(["Current tick count: %s" % self.mars.tick_count, "#FFFFFF"])
             self.__socketio.emit('player_scores', current_scores, 'player')
             for thread in self.mars.thread_pool: print thread
             print "\n==========================\n"
