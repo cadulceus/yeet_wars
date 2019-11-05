@@ -6,6 +6,7 @@ RUN pip install -r requirements.txt
 
 COPY ./ ./
 
+RUN pip install .
 ENV YEET_CONFIG_FILE csaw_config.json
 
 EXPOSE 5000

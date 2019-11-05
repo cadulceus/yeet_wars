@@ -13,3 +13,4 @@ tests/
 history.txt
 sample_config.json
 **/*.pyc
+*.egg-info/
