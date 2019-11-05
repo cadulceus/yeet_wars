@@ -5,10 +5,10 @@ import re
 from struct import pack
 
 __all__ = ['parse', 'NOPE', 'YEET', 'YOINK', 'SUB', 'MUL', 'DIV', 'FITS', 'BOUNCE',
-           'BOUNCEZ', 'BOUNCEN', 'BOUNCED', 'ZOOP', 'YEETCALL',
+           'BOUNCEZ', 'BOUNCEN', 'BOUNCED', 'ZOOP', 'YEB', 'YEETCALL', 
            'IMMEDIATE', 'RELATIVE', 'REGISTER_DIRECT', 'REGISTER_INDIRECT', 'Instruction',
            'TRANSFER_OWNERSHIP', 'LOCATE_NEAREST_THREAD', 'INSTRUCTION_WIDTH', 'WORD_SIZE',
-           'WORD_MAX', 'BYTE_MAX', 'disassemble']
+           'WORD_MAX', 'BYTE_MAX', 'XD_REGISTER', 'DX_REGISTER', 'disassemble']
 
 # The instruction type is encoded in the first nibble of the first byte of the instruction
 YEET      = 1     # move from A to B
@@ -16,13 +16,14 @@ YOINK     = 2     # add A to B, store result in B
 SUB       = 3     # subtract A from B, store result in B
 MUL       = 4     # multiply A by B, store result in B
 DIV       = 5     # divide B by A, store result in B if A <> 0, else terminate
-FITS       = 6     # divide B by A, store remainder in B if A <> 0, else terminate
+FITS      = 6     # divide B by A, store remainder in B if A <> 0, else terminate
 BOUNCE    = 7     # transfer execution to B
 BOUNCEZ   = 8     # transfer execution to B if A is zero
 BOUNCEN   = 9     # transfer execution to B if A is non-zero
 BOUNCED   = 10    # decrement A, if A is non-zero, transfer execution to B
 ZOOP      = 11    # split off process to B
-NOPE      = 14     # No operation
+YEB       = 12    # xchg A and B
+NOPE      = 14    # No operation
 YEETCALL  = 15    # System call
 
 # These values are encoded in the instruction as the a_number or b_number
@@ -46,7 +47,7 @@ BYTE_MAX = 256
 WORD_MAX = 4294967296
 
 OPCODES = {'NOPE': NOPE, 'YEET': YEET, 'YOINK': YOINK, 'SUB': SUB, 'MUL': MUL,
-           'DIV': DIV, 'FITS': FITS, 'BOUNCE': BOUNCE, 'BOUNCEZ': BOUNCEZ,
+           'DIV': DIV, 'FITS': FITS, 'BOUNCE': BOUNCE, 'BOUNCEZ': BOUNCEZ, 'YEB': YEB,
            'BOUNCEN': BOUNCEN, 'BOUNCED': BOUNCED, 'ZOOP': ZOOP, 'YEETCALL': YEETCALL}
 
 MODES = {'$': IMMEDIATE, '#': RELATIVE,

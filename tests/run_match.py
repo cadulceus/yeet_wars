@@ -201,6 +201,31 @@ class InstructionTests(unittest.TestCase):
         runtime.step()
         self.assertEqual(runtime.next_tick_pool[-1].pc, 4)
         self.assertEqual(runtime.next_tick_pool[-1].dx_bytes, "teey")
+
+    def test_xchg(self):
+        mem = Core()
+        runtime = MARS(mem, players={0: Player("Test", 0, "Token")})
+        instrs = parse(['YEB $50, %XD', 'YEB $50, $54', 'YEB #100, [DX'])
+        initial_core = ""
+        for instr in instrs:
+            initial_core += instr.mcode
+            
+        runtime.core[0] = initial_core
+        runtime.core[50] = pack('>I', 0x1337beef)
+        runtime.core[54] = pack('>I', 0xc0decafe)
+        runtime.core[108] = pack('>I', 0xdeadface)
+        runtime.core[200] = pack('>I', 0x45464748)
+        
+        runtime.spawn_new_thread(Thread(0, 0x41424344, 200, 0))
+        runtime.step()
+        self.assertEqual(runtime.core[50:54], bytearray([0x41, 0x42, 0x43, 0x44]))
+        self.assertEqual(runtime.next_tick_pool[0].xd, 0x1337beef)
+        runtime.step()
+        self.assertEqual(runtime.core[50:54], bytearray([0xc0, 0xde, 0xca, 0xfe]))
+        self.assertEqual(runtime.core[54:58], bytearray([0x41, 0x42, 0x43, 0x44]))
+        runtime.step()
+        self.assertEqual(runtime.core[200:204], bytearray([0xde, 0xad, 0xfa, 0xce]))
+        self.assertEqual(runtime.core[108:112], bytearray([0x45, 0x46, 0x47, 0x48]))
         
     def test_fuzz(self):
         runtime = MARS(players={0 : Player("rando1", 0, "Token1"), 1 : Player("rando2", 1, "Token2"), 2 : Player("rando3", 2, "Token3")})
