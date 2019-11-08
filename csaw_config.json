@@ -1,0 +1,19 @@
+{
+"seconds_per_tick": 1,
+"ticks_per_round": 12,
+"core_size": 16384,
+"max_processes": 20,
+"admin_token": "admintokenyeet",
+"players": [
+    {"name": "anon1", "token": "token1"},
+    {"name": "anon2", "token": "token2"},
+    {"name": "anon3", "token": "token3"},
+    {"name": "anon4", "token": "token4"},
+    {"name": "anon5", "token": "token5"},
+    {"name": "anon6", "token": "token6"},
+    {"name": "anon7", "token": "token7"},
+    {"name": "anon8", "token": "token8"},
+    {"name": "anon9", "token": "token9"},
+    {"name": "anon10", "token": "token10"}
+]
+}

@@ -1,0 +1,16 @@
+.dockerignore
+Dockerfile
+.gitignore
+.git/
+docker-compose.yml
+client/
+todo_list.txt
+env/
+README.md
+LICENSE
+tests.py
+tests/
+history.txt
+sample_config.json
+**/*.pyc
+*.egg-info/

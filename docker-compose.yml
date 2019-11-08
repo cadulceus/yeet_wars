@@ -1,0 +1,19 @@
+version: '2'
+
+services:
+  yeet_wars:
+    build:
+      context: ./
+    
+    ports:
+      - 5000:5000
+    
+    volumes:
+      - ./history.txt:/opt/history.txt
+  
+  yeet_client:
+    build:
+      context: ./client
+    
+    ports:
+      - 8000:80

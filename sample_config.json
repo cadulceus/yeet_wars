@@ -1,0 +1,14 @@
+{
+"seconds_per_tick": 1,
+"ticks_per_round": 5,
+"staging_file": "staging.json",
+"core_size": 401,
+"admin_token": "admintokenyeet",
+"players": [
+    {"name": "anon1", "token": "token1"},
+    {"name": "anon2", "token": "token2"},
+    {"name": "anon3", "token": "token3"},
+    {"name": "anon4", "token": "token4"},
+    {"name": "anon5", "token": "token5"}
+]
+}

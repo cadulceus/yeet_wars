@@ -1,0 +1,9 @@
+*.pyc
+.vscode/
+
+*.egg-info/
+env/
+venv/
+__pycache__/
+*.json
+history.txt
