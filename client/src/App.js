@@ -27,6 +27,7 @@ class App extends Component {
     };
   }
   componentDidMount() {
+    const query = new URLSearchParams(window.location.search);
     const token = query.get('token');
 
     const socket = io(':5000', {
