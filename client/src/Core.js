@@ -32,8 +32,6 @@ class Core extends Component {
   }
 
   componentDidMount(){
-    const { token } = this.props;
-
     this.props.socket.on('connect', () => {
       console.log("Connected!");
     });

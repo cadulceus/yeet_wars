@@ -38,12 +38,9 @@ class App extends Component {
   }
 
   render() {
-    const query = new URLSearchParams(window.location.search);
-    const token = query.get('token');
-
     const { classes } = this.props;
 
-    if (!token) return (
+    if (!this.state.socket) return (
       <form className={classes.bigForm}>
         <label htmlFor="token">Token</label>
         <input type="text" name="token" />
@@ -66,10 +63,10 @@ class App extends Component {
 
           <Switch>
             <Route exact path="/">
-              <Core token={token} socket={this.state.socket} />
+              <Core socket={this.state.socket} />
             </Route>
             <Route exact path="/events">
-              <Events token={token} socket={this.state.socket} />
+              <Events socket={this.state.socket} />
             </Route>
           </Switch>
         </div>
