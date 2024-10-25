@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { withStyles } from '@material-ui/core';
-import io from 'socket.io-client';
 
 const styles = theme => ({
   events_grid: {
@@ -31,7 +30,6 @@ class Events extends Component {
     super(props);
 
     this.state = {
-      socket: null,
       events: [],
       scores: []
     };
@@ -40,19 +38,15 @@ class Events extends Component {
   componentDidMount(){
     const { token } = this.props;
 
-    const socket = io(':5000', {
-      query: `token=${token}`,
-    });
-
-    socket.on('connect', () => {
+    this.props.socket.on('connect', () => {
       console.log("Connected to events!");
     });
 
-    socket.on('player_scores', new_scores => {
+    this.props.socket.on('player_scores', new_scores => {
       this.setState({ scores: new_scores });
     });
     
-    socket.on('events', new_events => {
+    this.props.socket.on('events', new_events => {
       var current_events = JSON.parse(JSON.stringify(this.state.events));
       current_events.unshift(new_events);
       if (current_events.length > 20) {
@@ -61,12 +55,10 @@ class Events extends Component {
       this.setState({ events: current_events });
     });
 
-    socket.on('disconnect', () => {
+    this.props.socket.on('disconnect', () => {
       // TODO: add a boundary to check for disconnect and render a "disconnected" error
       console.log('disconnected');
     });
-
-    this.setState({ socket });
   }
 
   render() {

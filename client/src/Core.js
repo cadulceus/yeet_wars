@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import io from 'socket.io-client';
 import { withStyles } from '@material-ui/core';
 
 const styles = theme => ({
@@ -26,7 +25,6 @@ class Core extends Component {
     super(props);
 
     this.state = {
-      socket: null,
       core_state: [],
       thread_states: {},
       thread_locs: {}
@@ -36,19 +34,15 @@ class Core extends Component {
   componentDidMount(){
     const { token } = this.props;
 
-    const socket = io(':5000', {
-      query: `token=${token}`,
-    });
-
-    socket.on('connect', () => {
+    this.props.socket.on('connect', () => {
       console.log("Connected!");
     });
 
-    socket.on('disconnect', () => {
+    this.props.socket.on('disconnect', () => {
       console.log('Disconnected');
     });
 
-    socket.on('update_thread', thread_update => {
+    this.props.socket.on('update_thread', thread_update => {
       const [id, pc, color] = thread_update;
 
       var new_thread_states = JSON.parse(JSON.stringify(this.state.thread_states));
@@ -65,7 +59,7 @@ class Core extends Component {
       this.setState({ thread_states: new_thread_states, thread_locs: new_thread_locs});
     });
 
-    socket.on('kill_thread', thread_id => {
+    this.props.socket.on('kill_thread', thread_id => {
       const { thread_states, thread_locs } = this.state;
 
       this.setState({
@@ -81,14 +75,14 @@ class Core extends Component {
       });
     });
 
-    socket.on('core_connection', core => {
+    this.props.socket.on('core_connection', core => {
       var colified_core = core.map(byte => {
         return "#" + (255 - byte).toString(16).repeat(3);
       });
       this.setState({ core_state: colified_core });
     });
 
-    socket.on('core_state', updates => {
+    this.props.socket.on('core_state', updates => {
       var core = [...this.state.core_state];
       console.log(updates)
       updates.forEach(update => {
@@ -98,8 +92,6 @@ class Core extends Component {
       this.setState({ core_state: core });
     });
     
-
-    this.setState({ socket });
   }
 
   render() {

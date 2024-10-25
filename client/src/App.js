@@ -3,6 +3,8 @@ import { BrowserRouter as Router, Switch, Route, Link } from 'react-router-dom';
 import Core from './Core';
 import Events from './Events';
 import { withStyles } from '@material-ui/core';
+import io from 'socket.io-client';
+
 
 const styles = theme => ({
   bigForm: {
@@ -18,6 +20,22 @@ const styles = theme => ({
 
 
 class App extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { 
+      socket: null
+    };
+  }
+  componentDidMount() {
+    const token = query.get('token');
+
+    const socket = io(':5000', {
+      query: `token=${token}`,
+    });
+
+    this.setState({ socket });
+  }
+
   render() {
     const query = new URLSearchParams(window.location.search);
     const token = query.get('token');
@@ -47,10 +65,10 @@ class App extends Component {
 
           <Switch>
             <Route exact path="/">
-              <Core token={token} />
+              <Core token={token} socket={this.state.socket} />
             </Route>
             <Route exact path="/events">
-              <Events token={token} />
+              <Events token={token} socket={this.state.socket} />
             </Route>
           </Switch>
         </div>
