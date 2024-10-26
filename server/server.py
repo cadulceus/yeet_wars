@@ -106,7 +106,7 @@ def get_state():
 @admin_authorize
 def seconds_per_tick():
     """
-    POST /set_ticketrate
+    POST /set_tickrate
     updates the tick rate of the server
     Example:
     $ curl \
