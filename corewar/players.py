@@ -1,15 +1,25 @@
 from struct import pack, unpack
+import binascii
 
 class Thread(object):
     def __init__(self, pc, xd=0, dx=0, owner=0, thread_id=-1):
         self.pc = pc
         self.id = thread_id
-        self._xd = unpack('>I', xd)[0] if isinstance(xd, (str, bytearray)) else xd
-        self._dx = unpack('>I', dx)[0] if isinstance(dx, (str, bytearray)) else dx
+        self._xd = self.reg_to_int(xd)
+        self._dx = self.reg_to_int(dx)
         self.owner = owner
         # blame represents the player id of whoever
         self.xd_blame = owner
         self.dx_blame = owner
+
+    def reg_to_int(self, reg):
+        match reg:
+            case bytes() | bytearray():
+                return unpack('>I', reg)[0]
+            case str():
+                return unpack('>I', bytes(reg, 'UTF-8'))[0]
+            case int():
+                return reg
         
     @property
     def xd_bytes(self):
@@ -29,14 +39,14 @@ class Thread(object):
     
     @xd.setter
     def xd(self, val):
-        self._xd = unpack('>I', val)[0] if isinstance(val, (str, bytearray)) else val
+        self._xd = self.reg_to_int(val)
     
     @dx.setter
     def dx(self, val):
-        self._dx = unpack('>I', val)[0] if isinstance(val, (str, bytearray)) else val
+        self._dx = self.reg_to_int(val)
         
     def __str__(self):
-        return "ID: {} PC: {} Owner: {} XD: {} DX: {}".format(self.id, self.pc, self.owner, str(self.xd_bytes).encode("hex"), str(self.dx_bytes).encode("hex") )
+        return "ID: {} PC: {} Owner: {} XD: {} DX: {}".format(self.id, self.pc, self.owner, binascii.hexlify(self.xd_bytes), binascii.hexlify(self.dx_bytes))
         
     
 

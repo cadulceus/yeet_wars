@@ -1,7 +1,7 @@
 # coding: utf-8
 
 from copy import copy
-import re
+import re, binascii
 from struct import pack
 
 __all__ = ['parse', 'NOPE', 'YEET', 'YOINK', 'KNIOY', 'MUL', 'DIV', 'FITS', 'BOUNCE',
@@ -159,7 +159,7 @@ class Instruction(object):
             a_mode   = next(key for key,value in MODES.items() if value==self.a_mode)
             b_mode   = next(key for key,value in MODES.items() if value==self.b_mode)
         except Exception as e:
-            return "UNPARSEABLE<%s>" % str(self.mcode).encode("hex")
+            return "UNPARSEABLE<%s>" % binascii.hexlify(self.mcode)
 
         return "%s %s %s, %s %s" % (opcode,
                                        a_mode,
@@ -267,7 +267,7 @@ def parse_ysm(instr):
         b_number=b_arg
     )
 
-def parse(input, definitions={}):
+def parse(input, definitions={}) -> list[Instruction]:
     """ Return a list of instruction objects given an iterable of yasm strings."""
 
     labels = {}

@@ -101,7 +101,7 @@ class Engine(object):
             self.staged_payloads[player_id] = []
             return
             
-        load_idx = random.randint(0, self.mars.core.size/self.load_interval) * self.load_interval
+        load_idx = random.randint(0, self.mars.core.size//self.load_interval) * self.load_interval
 
         self.mars.core[load_idx] = assembled_instructions
         new_thread = corewar.players.Thread(pc=load_idx, owner=player_id)
@@ -135,6 +135,6 @@ class Engine(object):
                     self.float_to_hex_colors(self.players[player].color)])
             # Shitty hack to show the current tick count
             current_scores.append(["Current tick count: %s" % self.mars.tick_count, "#FFFFFF"])
-            self.__socketio.emit('player_scores', current_scores, 'player')
-            for thread in self.mars.thread_pool: print thread
-            print "\n==========================\n"
+            self.__socketio.emit('player_scores', (current_scores, 'player'))
+            for thread in self.mars.thread_pool: print(thread)
+            print("\n==========================\n")

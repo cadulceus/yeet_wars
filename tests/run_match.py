@@ -13,24 +13,24 @@ class InstructionTests(unittest.TestCase):
         runtime.core[0] = parse(['YEET #0, #4'])[0].mcode
         runtime.spawn_new_thread(Thread(0, 0, 0, 0))
         runtime.step()
-        self.assertEqual(runtime.core[:12], '\x15\x00\x00\x04\x15\x00\x00\x04\x00\x00\x00\x00')
+        self.assertEqual(runtime.core[:12], b'\x15\x00\x00\x04\x15\x00\x00\x04\x00\x00\x00\x00')
         
         runtime.core[4] = parse(['YEET $8, $81'])[0].mcode
         runtime.step()
-        self.assertEqual(runtime.core[:12], '\x15\x00\x00\x04\x10\x08\x00\x51\x00\x00\x00\x00')
+        self.assertEqual(runtime.core[:12], b'\x15\x00\x00\x04\x10\x08\x00\x51\x00\x00\x00\x00')
         self.assertEqual(runtime.core[81], 8)
         
         runtime.thread_pool = [Thread(0, parse(['YEET %XD, %DX'])[0].mcode, 0, 0)]
         runtime.core[0] = parse(['YEET %XD, $4'])[0].mcode
         runtime.step()
-        self.assertEqual(runtime.core[:12], '\x18\x00\x00\x04\x1A\x00\x00\01\x00\x00\x00\x00')
+        self.assertEqual(runtime.core[:12], b'\x18\x00\x00\x04\x1A\x00\x00\01\x00\x00\x00\x00')
         self.assertEqual(runtime.next_tick_pool[0].xd, runtime.next_tick_pool[0].dx)
         
         runtime.core[0] = parse(['YEET [DX, $80'])[0].mcode
         runtime.core[12] = 'YEET'
-        runtime.next_tick_pool = [Thread(0, 0, '\x00\x00\x00\x0C', 0)]
+        runtime.next_tick_pool = [Thread(0, 0, b'\x00\x00\x00\x0C', 0)]
         runtime.step()
-        self.assertEqual(runtime.core[80:84], 'YEET')
+        self.assertEqual(runtime.core[80:84], b'YEET')
         
     def test_yeet(self):
         mem = Core()
@@ -38,12 +38,12 @@ class InstructionTests(unittest.TestCase):
         runtime.core[0] = parse(['YEET #0, #4'])[0].mcode
         runtime.spawn_new_thread(Thread(0, 0, 0, 0))
         runtime.step()
-        self.assertEqual(runtime.core[:12], '\x15\x00\x00\x04\x15\x00\x00\x04\x00\x00\x00\x00')
+        self.assertEqual(runtime.core[:12], b'\x15\x00\x00\x04\x15\x00\x00\x04\x00\x00\x00\x00')
         self.assertEqual(runtime.next_tick_pool[0].pc, 4)
         self.assertEqual(runtime.next_tick_pool[0].xd, 0)
         self.assertEqual(runtime.next_tick_pool[0].dx, 0)
         runtime.step()
-        self.assertEqual(runtime.core[:12], '\x15\x00\x00\x04\x15\x00\x00\x04\x15\x00\x00\x04')
+        self.assertEqual(runtime.core[:12], b'\x15\x00\x00\x04\x15\x00\x00\x04\x15\x00\x00\x04')
         self.assertEqual(runtime.next_tick_pool[0].pc, 8)
         self.assertEqual(runtime.next_tick_pool[0].xd, 0)
         self.assertEqual(runtime.next_tick_pool[0].dx, 0)
@@ -53,7 +53,7 @@ class InstructionTests(unittest.TestCase):
         mem = Core()
         runtime = MARS(mem, players={0: Player("Test", 0, "Token")})
         instrs = parse(['YOINK $3, #50', 'KNIOY $5, $100', 'MUL $7, %XD', 'DIV $11, [DX', 'FITS $13, $200', 'DIV $0, $250'])
-        initial_core = ""
+        initial_core = b""
         for instr in instrs:
             initial_core += instr.mcode
             
@@ -72,7 +72,7 @@ class InstructionTests(unittest.TestCase):
         runtime.step()
         self.assertEqual(runtime.next_tick_pool[0].xd, 31 * 7)
         runtime.step()
-        self.assertEqual(runtime.core[150], 23 / 11)
+        self.assertEqual(runtime.core[150], 23 // 11)
         runtime.step()
         self.assertEqual(runtime.core[200], 29 % 13)
         runtime.step()
@@ -88,7 +88,7 @@ class InstructionTests(unittest.TestCase):
                         'NOPE',
                         'BOUNCED [DX, #0',
                         'BOUNCED $60, $0'])
-        initial_core = ""
+        initial_core = b""
         for instr in instrs:
             initial_core += instr.mcode
             
@@ -124,7 +124,7 @@ class InstructionTests(unittest.TestCase):
                         'ZOOP #0',
                         'NOPE',
                         'NOPE'])
-        initial_core = ""
+        initial_core = b""
         for instr in instrs:
             initial_core += instr.mcode
             
@@ -168,7 +168,7 @@ class InstructionTests(unittest.TestCase):
     def test_syscall(self):
         runtime = MARS(players={0 : Player("yeet", 0, "Token1"), 1 : Player("rando", 1, "Token2"), 69 : Player("teey", 69, "Token3")})
         instrs = parse(['YEETCALL'])
-        initial_core = ""
+        initial_core = b""
         for instr in instrs:
             initial_core += instr.mcode
             
@@ -183,7 +183,7 @@ class InstructionTests(unittest.TestCase):
         runtime.step()
         self.assertEqual(runtime.next_tick_pool[-1].pc, 4)
         self.assertEqual(runtime.next_tick_pool[-1].owner, 0)
-        self.assertEqual(runtime.next_tick_pool[-1].dx_bytes, "teey")
+        self.assertEqual(runtime.next_tick_pool[-1].dx_bytes, b"teey")
         runtime.step()
         self.assertEqual(runtime.next_tick_pool[-1].pc, 4)
         self.assertEqual(runtime.next_tick_pool[-1].dx, 4)
@@ -203,14 +203,14 @@ class InstructionTests(unittest.TestCase):
         runtime.spawn_new_thread(Thread(0, LOCATE_NEAREST_THREAD, 0, 0))
         runtime.step()
         self.assertEqual(runtime.next_tick_pool[-1].pc, 4)
-        self.assertEqual(runtime.next_tick_pool[-1].dx_bytes, "teey")
+        self.assertEqual(runtime.next_tick_pool[-1].dx_bytes, b"teey")
         runtime.thread_pool = []
         runtime.next_tick_pool = []
         runtime.spawn_new_thread(Thread(51, LOCATE_NEAREST_THREAD, 0, 1))
         runtime.spawn_new_thread(Thread(0, LOCATE_NEAREST_THREAD, 0, 0))
         runtime.step()
         self.assertEqual(runtime.next_tick_pool[-1].pc, 4)
-        self.assertEqual(runtime.next_tick_pool[-1].dx_bytes, "teey")
+        self.assertEqual(runtime.next_tick_pool[-1].dx_bytes, b"teey")
         
         runtime.thread_pool = []
         runtime.next_tick_pool = []
@@ -223,7 +223,7 @@ class InstructionTests(unittest.TestCase):
         mem = Core()
         runtime = MARS(mem, players={0: Player("Test", 0, "Token")})
         instrs = parse(['YEB $50, %XD', 'YEB $50, $54', 'YEB #100, [DX'])
-        initial_core = ""
+        initial_core = b""
         for instr in instrs:
             initial_core += instr.mcode
             
@@ -246,9 +246,9 @@ class InstructionTests(unittest.TestCase):
         
     def test_fuzz(self):
         runtime = MARS(players={0 : Player("rando1", 0, "Token1"), 1 : Player("rando2", 1, "Token2"), 2 : Player("rando3", 2, "Token3")})
-        initial_core = ""
+        initial_core = b""
         for i in range(runtime.core.size):
-            initial_core += chr(randint(0, 255))
+            initial_core += randint(0, 255).to_bytes(1, 'big')
             if i % 7 == 0:
                 xd = randint(0, WORD_MAX - 1) if randint(0, 1) else randint(0, BYTE_MAX - 1)
                 dx = randint(0, WORD_MAX - 1) if randint(0, 1) else randint(0, BYTE_MAX - 1)
@@ -261,9 +261,9 @@ class InstructionTests(unittest.TestCase):
             runtime.step()
             if len(runtime.thread_pool) + len(runtime.next_tick_pool) == 0:
                 break
-        print "Test completed in %s cycles, %s threads remained" % (cycle_count, live_threads)
-        for thread in runtime.thread_pool: print thread, disassemble(runtime.core[thread.pc:thread.pc + 4])
-        for thread in runtime.next_tick_pool: print thread, disassemble(runtime.core[thread.pc:thread.pc + 4])
+        print("Test completed in %s cycles, %s threads remained" % (cycle_count, live_threads))
+        for thread in runtime.thread_pool: print(thread, disassemble(runtime.core[thread.pc:thread.pc + 4]))
+        for thread in runtime.next_tick_pool: print(thread, disassemble(runtime.core[thread.pc:thread.pc + 4]))
  
 def run_tests():
     unittest.main()
