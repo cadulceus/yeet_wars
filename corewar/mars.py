@@ -40,7 +40,7 @@ class MARS(object):
 
     def __init__(self, core=None, minimum_separation=100, max_processes=10, players={}, seconds_per_tick=0, \
         runtime_event_handler=lambda *args: None, update_thread_event_handler=lambda *args: None, \
-        kill_thread_event_handler=lambda *args: None):
+        kill_thread_event_handler=lambda *args: None, ticket_event_handler=lambda *args: None):
         self.core = core if core else Core()
         self.minimum_separation = minimum_separation
         self.max_processes = max_processes if max_processes else len(self.core)
@@ -53,6 +53,7 @@ class MARS(object):
         self.runtime_event_handler = runtime_event_handler
         self.update_thread_event_handler = update_thread_event_handler
         self.kill_thread_event_handler = kill_thread_event_handler
+        self.tick_event_handler = ticket_event_handler
 
     def __iter__(self):
         return iter(self.core)
@@ -395,6 +396,7 @@ class MARS(object):
         
     def tick(self):
         "Simulate one step for each thread in the thread pool"
+        self.tick_event_handler()
         pool_size = len(self.thread_pool)
         if not pool_size:
             sleep(self.seconds_per_tick)
@@ -515,7 +517,7 @@ class MARS(object):
             else:
                 raise yeetTimeException("Invalid instruction", thread, instr)
         except yeetTimeException as e:
-            self.crash_thread(thread, e.message)
+            self.crash_thread(thread, e)
             return
                 
         # Any instructions that altered control flow should have prematurely returned

@@ -3,11 +3,11 @@ import binascii
 
 class Thread(object):
     def __init__(self, pc, xd=0, dx=0, owner=0, thread_id=-1):
-        self.pc = pc
-        self.id = thread_id
-        self._xd = self.reg_to_int(xd)
-        self._dx = self.reg_to_int(dx)
-        self.owner = owner
+        self.pc: int = pc
+        self.id: int = thread_id
+        self._xd:int = self.reg_to_int(xd)
+        self._dx: int = self.reg_to_int(dx)
+        self.owner: int = owner
         # blame represents the player id of whoever
         self.xd_blame = owner
         self.dx_blame = owner

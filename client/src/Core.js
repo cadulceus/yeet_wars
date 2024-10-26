@@ -48,37 +48,41 @@ class Core extends Component {
       console.log('Disconnected');
     });
 
-    socket.on('update_thread', thread_update => {
-      const [id, pc, color] = thread_update;
-
-      var new_thread_states = JSON.parse(JSON.stringify(this.state.thread_states));
-      var new_thread_locs = JSON.parse(JSON.stringify(this.state.thread_locs));
-      // first remove its old location in thread_locs
-      for (var loc in new_thread_locs) {
-        // search for the previous location of the thread ID in thread_locs
-        if (new_thread_locs.hasOwnProperty(loc) && new_thread_locs[loc] === id) {
-            delete new_thread_locs[loc];
+    socket.on('update_thread', thread_updates => {
+      thread_updates.forEach(thread_update => {
+        const [id, pc, color] = thread_update;
+  
+        var new_thread_states = JSON.parse(JSON.stringify(this.state.thread_states));
+        var new_thread_locs = JSON.parse(JSON.stringify(this.state.thread_locs));
+        // first remove its old location in thread_locs
+        for (var loc in new_thread_locs) {
+          // search for the previous location of the thread ID in thread_locs
+          if (new_thread_locs.hasOwnProperty(loc) && new_thread_locs[loc] === id) {
+              delete new_thread_locs[loc];
+          }
         }
-      }
-      new_thread_states[id] = [pc, color];
-      new_thread_locs[pc] = id;
-      this.setState({ thread_states: new_thread_states, thread_locs: new_thread_locs});
+        new_thread_states[id] = [pc, color];
+        new_thread_locs[pc] = id;
+        this.setState({ thread_states: new_thread_states, thread_locs: new_thread_locs});
+      })
     });
 
-    socket.on('kill_thread', thread_id => {
-      const { thread_states, thread_locs } = this.state;
-
-      this.setState({
-        thread_states: Object.keys(thread_states).filter(key => key !== thread_id).reduce((states, tid) => {
-          states[tid] = thread_states[tid];
-          return states;
-        }, {}),
-        thread_locs: Object.keys(thread_locs).filter(key => thread_locs[key] !== thread_id
-          ).reduce((locs, loc) => {
-            locs[loc] = thread_locs[loc];
-            return locs;
+    socket.on('kill_thread', thread_ids => {
+      thread_ids.forEach(thread_id => {
+        const { thread_states, thread_locs } = this.state;
+  
+        this.setState({
+          thread_states: Object.keys(thread_states).filter(key => key !== thread_id).reduce((states, tid) => {
+            states[tid] = thread_states[tid];
+            return states;
           }, {}),
-      });
+          thread_locs: Object.keys(thread_locs).filter(key => thread_locs[key] !== thread_id
+            ).reduce((locs, loc) => {
+              locs[loc] = thread_locs[loc];
+              return locs;
+            }, {}),
+        });
+      })
     });
 
     socket.on('core_connection', core => {
@@ -90,7 +94,6 @@ class Core extends Component {
 
     socket.on('core_state', updates => {
       var core = [...this.state.core_state];
-      console.log(updates)
       updates.forEach(update => {
         core[update[0]] = "#" + (255 - update[1]).toString(16).repeat(3);
       });
