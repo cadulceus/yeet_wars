@@ -44,7 +44,7 @@ env_vars = load_env_vars()
 if config_file and os.path.isfile(config_file):
     with open(config_file, "r") as r:
         config = json.load(r)
-        print config
+        print(config)
 else:
     config = env_vars
     
@@ -62,7 +62,7 @@ def admin_authorize(f):
         if not 'Authorization' in request.headers:
             abort(401)
 
-        data = request.headers['Authorization'].encode('ascii', 'ignore')
+        data = request.headers['Authorization'] # .encode('ascii', 'ignore')
         token = data.lower().replace('bearer ', '')
         if token != app.config['ADMIN_TOKEN']:
             abort(401)
@@ -75,10 +75,10 @@ def player_authorize(f):
         if not 'Authorization' in request.headers:
             abort(401)
 
-        data = request.headers['Authorization'].encode('ascii', 'ignore')
+        data = request.headers['Authorization'] # .encode('ascii', 'ignore')
         token = data.replace('Bearer ', '')
-        print token
-        print app.config['PLAYER_TOKENS']
+        print(token)
+        print(app.config['PLAYER_TOKENS'])
         if token not in app.config['PLAYER_TOKENS'].keys():
             abort(401)
         player = app.config['PLAYER_TOKENS'][token]
@@ -150,7 +150,7 @@ def add_player():
 
     app.config['PLAYER_TOKENS'][player_token] = {'name': player_name, 'id': len(app.config['PLAYER_TOKENS'])}
     error = not e.add_player(player_name, app.config['PLAYER_TOKENS'][player_token]['id'], player_token)
-    print e.players
+    print(e.players)
     if error:
         return jsonify({'status': 'error', 'message': 'failed to add player to engine'})
     

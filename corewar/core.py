@@ -10,7 +10,7 @@ class Core(object):
        warriors, and tasks.
     """
 
-    def __init__(self, initial_value='\x00', size=8000, core_event_recorder=lambda *args : None):
+    def __init__(self, initial_value=b'\x00', size=8000, core_event_recorder=lambda *args : None):
         self.owner = [-1 for i in range(size)]
         self.size = size
         self.clear(initial_value)
@@ -22,22 +22,30 @@ class Core(object):
         self.bytes = bytearray(byte)*self.size
         
     def __getitem__(self, address):
+        # Python3 seems to have deprecated __getslice__
+        if isinstance(address, slice):
+            return self.__getslice__(address.start, address.stop)
         return self.bytes[address % self.size]
 
     def __getslice__(self, start, stop):
+        if not start: start = 0
+        if not stop: stop = -1
         if start > stop:
             return []
         else:
             return bytearray([self.bytes[(start + i) % self.size] for i in range(stop - start)])
 
     def __setitem__(self, address, value):
-        if isinstance(value, (int, long)):
+        if isinstance(value, str):
+            value = bytes(value, 'UTF-8')
+
+        if isinstance(value, int):
             self.bytes[address % self.size] = value
             self.core_event_recorder(((address % self.size, value)))
         else:
             events = []
             for ctr, byte in enumerate(value):
-                if not isinstance(byte, (int, long)):
+                if not isinstance(byte, int):
                     converted = ord(byte)
                 else:
                     converted = byte

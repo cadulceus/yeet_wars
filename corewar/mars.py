@@ -5,10 +5,10 @@ from copy import copy, deepcopy
 from random import randint, shuffle, choice
 import operator, struct
 
-from core import Core
+from .core import Core
 from time import sleep
-from yeetcode import *
-from players import *
+from .yeetcode import *
+from .players import *
 
 __all__ = ['MARS', 'EVENT_EXECUTED', 'EVENT_I_WRITE', 'EVENT_I_READ',
            'EVENT_A_DEC', 'EVENT_A_INC', 'EVENT_B_DEC', 'EVENT_B_INC',
@@ -82,7 +82,6 @@ class MARS(object):
     
     def kill_oldest_thread(self, player_id):
         if len(self.players[player_id].threads) == 0:
-            print "Player has no threads"
             return
         self.kill_thread(self.players[player_id].threads.pop(0))
 
@@ -452,7 +451,7 @@ class MARS(object):
             elif opc == DIV:
                 if self.get_a_int(instr, thread) == 0:
                     raise yeetTimeException("Divided by 0", thread, instr)
-                self.mov_template(instr, thread, lambda x, y : y / x)
+                self.mov_template(instr, thread, lambda x, y : y // x)
                     
             elif opc == FITS:
                 if self.get_a_int(instr, thread) == 0:

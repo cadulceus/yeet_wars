@@ -38,7 +38,7 @@ class Engine(object):
     # TODO: these color functions should really be broken out 
     # code for color generation taken from https://gist.github.com/adewes/5884820 
     def get_random_color(self, pastel_factor = 0.5):
-        return [(x+pastel_factor)/(1.0+pastel_factor) for x in [random.uniform(0,1.0) for i in [1,2,3]]]
+        return [(x+pastel_factor)//(1.0+pastel_factor) for x in [random.uniform(0,1.0) for i in [1,2,3]]]
 
     def color_distance(self, c1,c2):
         return sum([abs(x[0]-x[1]) for x in zip(c1,c2)])
@@ -101,7 +101,7 @@ class Engine(object):
             self.staged_payloads[player_id] = []
             return
             
-        load_idx = random.randint(0, self.mars.core.size/self.load_interval) * self.load_interval
+        load_idx = random.randint(0, self.mars.core.size//self.load_interval) * self.load_interval
 
         self.mars.core[load_idx] = assembled_instructions
         new_thread = corewar.players.Thread(pc=load_idx, owner=player_id)
@@ -135,6 +135,6 @@ class Engine(object):
                     self.float_to_hex_colors(self.players[player].color)])
             # Shitty hack to show the current tick count
             current_scores.append(["Current tick count: %s" % self.mars.tick_count, "#FFFFFF"])
-            self.__socketio.emit('player_scores', current_scores, 'player')
-            for thread in self.mars.thread_pool: print thread
-            print "\n==========================\n"
+            self.__socketio.emit('player_scores', (current_scores, 'player'))
+            for thread in self.mars.thread_pool: print(thread)
+            print("\n==========================\n")
