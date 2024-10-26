@@ -73,7 +73,7 @@ def disassemble(byte_arr):
     try:
         instr.mcode = byte_arr
     except Exception as e:
-        return e.message
+        return e
     return instr.__str__()
 
 class Instruction(object):

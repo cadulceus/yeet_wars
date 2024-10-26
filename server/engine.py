@@ -1,9 +1,9 @@
 import corewar.core
 import corewar.mars
 import corewar.players
-import json
 import random
 import time
+import copy
 
 class Engine(object):
     """Game engine
@@ -12,18 +12,22 @@ class Engine(object):
     data from the database.
     """
     def __init__(self, socketio=None, seconds_per_tick=10,
-                 staging_file='staging.json', ticks_per_round=20,
+                 staging_file='staging.json', ticks_per_stage=1,
                  core_size=8192, load_interval=200,
-                 players=[{'name': 'User0', 'token': 'token1'}], max_processes=10, max_staging_size=50):
+                 players=[{'name': 'User0', 'token': 'token1'}], max_processes=10, max_staging_size=50, batch_events=True):
         self.__socketio = socketio
         self.seconds_per_tick = seconds_per_tick
         self.staging_file = staging_file
-        self.ticks_per_round = ticks_per_round
+        self.ticks_per_stage = ticks_per_stage
         self.load_interval = load_interval
         self.players = {}
         self.staged_payloads = {}
         self.max_staging_size = max_staging_size
         self.used_colors = []
+        self.batch_events= batch_events
+        self.core_event_cache = []
+        self.update_thread_event_cache = []
+        self.kill_thread_event_cache = []
         for i in range(len(players)):
             self.used_colors.append(self.generate_new_color(self.used_colors))
         for idx, player in enumerate(players):
@@ -33,7 +37,12 @@ class Engine(object):
             core_event_recorder=self.core_event_handler), players=self.players, \
             max_processes=max_processes, seconds_per_tick=self.seconds_per_tick, \
             runtime_event_handler=self.runtime_event_handler, update_thread_event_handler=self.update_thread_event_handler, \
-            kill_thread_event_handler=self.kill_thread_event_handler)
+            kill_thread_event_handler=self.kill_thread_event_handler, ticket_event_handler=self.tick_event_handler)
+        
+        if batch_events:
+            self.cached_core_bytes = copy.deepcopy(self.mars.core.bytes)
+        else:
+            self.cached_core_bytes = self.mars.core.bytes
   
     # TODO: these color functions should really be broken out 
     # code for color generation taken from https://gist.github.com/adewes/5884820 
@@ -56,7 +65,7 @@ class Engine(object):
                 best_color = color
         return best_color
     
-    def float_to_hex_colors(self, color):
+    def float_to_hex_colors(self, color) -> list[str]:
         hexified_colors = [hex(int(255 * percentage))[2:] for percentage in color]
         return "#" + "".join(hexified_colors)
 
@@ -67,15 +76,47 @@ class Engine(object):
         self.players[player_id] = corewar.players.Player(player_name, player_id, player_token, color=new_color)
         self.used_colors.append(new_color)
         return True
+    
+    def emit_core_update(self, events: list[list[int]]):
+        if events:
+            self.__socketio.emit('core_state', events, room='admin')
+    
+    def emit_thread_update(self, events: list[tuple[int, int, list[str]]]):
+        if events:
+            self.__socketio.emit('update_thread', events, room='admin')
+    
+    def emit_thread_kill(self, events: list[int]):
+        self.__socketio.emit('kill_thread', events, room='admin')
         
-    def core_event_handler(self, events):
-        self.__socketio.emit('core_state', events, room='admin')
+    def core_event_handler(self, events: list[list[int]]):
+        if self.batch_events:
+            self.core_event_cache += events
+        else:
+            self.emit_core_update(events)
         
     def update_thread_event_handler(self, pid, pc, color):
-        self.__socketio.emit('update_thread', [pid, pc, self.float_to_hex_colors(color)], room='admin')
+        if self.batch_events:
+            self.update_thread_event_cache.append((pid, pc, self.float_to_hex_colors(color)))
+        else:
+            self.emit_thread_update([(pid, pc, self.float_to_hex_colors(color))])
         
     def kill_thread_event_handler(self, events):
-        self.__socketio.emit('kill_thread', events, room='admin')
+        if self.batch_events:
+            self.kill_thread_event_cache.append(events)
+        else:
+            self.emit_thread_kill(events)
+
+    def tick_event_handler(self):
+        if self.batch_events:
+            # when events are batched, the /state endpoint must return a snapshot of the core rather than the live core to avoid desyncronization
+            self.cached_core_bytes = copy.deepcopy(self.mars.core.bytes)
+
+            self.emit_core_update(self.core_event_cache)
+            self.emit_thread_kill(self.kill_thread_event_cache)
+            self.emit_thread_update(self.update_thread_event_cache)
+            self.core_event_cache = []
+            self.kill_thread_event_cache = []
+            self.update_thread_event_cache = []
         
     def runtime_event_handler(self, events):
         self.__socketio.emit('events', "Cycle number: %s\n%s\n\n%s" % (self.mars.tick_count, events, time.ctime(time.time())), room='player')
@@ -97,7 +138,7 @@ class Engine(object):
             assembled_instructions = corewar.yeetcode.assemble(self.staged_payloads[player_id][1])
         except Exception as e:
             self.runtime_event_handler("Failed to assemble payload. \
-                Staging endpoint expects a string of newline separated instructions: %s" % e.message)
+                Staging endpoint expects a string of newline separated instructions: %s" % e)
             self.staged_payloads[player_id] = []
             return
             
@@ -124,10 +165,12 @@ class Engine(object):
         specified in the seconds_per_tick variable
         """
         while True:
-            #TODO: allow for more players than ticks_per_round
-            target_player = self.mars.tick_count % max(self.ticks_per_round, len(self.players))
-            if target_player in self.players:
-                self.load_staged_program(target_player)
+            # if its a staging round, stage a program from a player sequentially
+            if self.mars.tick_count % self.ticks_per_stage == 0:
+                target_player = (self.mars.tick_count // self.ticks_per_stage) % len(self.players)
+                if target_player in self.players:
+                    self.load_staged_program(target_player)
+
             self.mars.tick()
             current_scores = []
             for player in self.players:

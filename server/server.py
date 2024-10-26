@@ -15,10 +15,10 @@ def load_env_vars():
     seconds_per_tick = os.getenv('YEET_SECONDS_PER_TICK')
     if seconds_per_tick:
         env_vars['seconds_per_tick'] = float(seconds_per_tick)
-    
-    ticks_per_round = os.getenv('YEET_TICKS_PER_ROUND')
-    if ticks_per_round:
-        env_vars['ticks_per_round'] = int(ticks_per_round)
+
+    ticks_per_stage = os.getenv('TICKS_PER_STAGE')
+    if ticks_per_stage:
+        env_vars['ticks_per_stage'] = int(ticks_per_stage)
 
     staging_file = os.getenv('YEET_STAGING_FILE')
     if staging_file:
@@ -94,20 +94,20 @@ engine_thread.daemon = True
 engine_thread.start()
 
 @app.route('/state')
-@admin_authorize
+@player_authorize
 def get_state():
     """
     GET /state
     Returns the current bytearray of the yeetcode game core
     """
-    return jsonify(list(e.mars.core.bytes))
+    return jsonify(list(e.cached_core_bytes))
 
 @app.route('/set_tickrate', methods=['POST'])
 @admin_authorize
 def seconds_per_tick():
     """
-    POST /add_player
-    Adds a player to the game
+    POST /set_ticketrate
+    updates the tick rate of the server
     Example:
     $ curl \
         -H 'content-type: application/json' \
@@ -194,7 +194,7 @@ def connected_client():
   else:
     disconnect()
 
-  emit('core_connection', list(e.mars.core.bytes), room='admin')
+  emit('core_connection', list(e.cached_core_bytes), room='admin')
   emit('event_connection', "Events feed loaded", room='player')
 
 
