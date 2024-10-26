@@ -194,7 +194,7 @@ def connected_client():
   else:
     disconnect()
 
-  emit('core_connection', list(e.cached_core_bytes), room='admin')
+  emit('core_connection', list(e.cached_core_bytes), room='player')
   emit('event_connection', "Events feed loaded", room='player')
 
 

@@ -79,14 +79,14 @@ class Engine(object):
     
     def emit_core_update(self, events: list[list[int]]):
         if events:
-            self.__socketio.emit('core_state', events, room='admin')
+            self.__socketio.emit('core_state', events, room='player')
     
     def emit_thread_update(self, events: list[tuple[int, int, list[str]]]):
         if events:
-            self.__socketio.emit('update_thread', events, room='admin')
+            self.__socketio.emit('update_thread', events, room='player')
     
     def emit_thread_kill(self, events: list[int]):
-        self.__socketio.emit('kill_thread', events, room='admin')
+        self.__socketio.emit('kill_thread', events, room='player')
         
     def core_event_handler(self, events: list[list[int]]):
         if self.batch_events:
