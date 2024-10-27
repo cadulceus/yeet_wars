@@ -36,7 +36,7 @@ class Core extends Component {
   componentDidMount() {
     const { token } = this.props;
 
-    const socket = io('http://44.201.207.128:5000', {
+    const socket = io(':5000', {
       query: `token=${token}`,
     });
 
@@ -92,19 +92,12 @@ class Core extends Component {
     });
 
     socket.on('core_state', updates => {
-      const start = Date.now()
-      console.log('cs start', start)
-
       var core = [...this.state.core_state];
       updates.forEach(update => {
         core[update[0]] = "#" + (255 - update[1]).toString(16).repeat(3);
       });
 
       this.setState({ core_state: core });
-
-      const end = Date.now()
-      console.log('cs end', end)
-      console.log('cs elapsed', end - start)
     });
 
 
