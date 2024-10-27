@@ -1,5 +1,6 @@
 FROM node:latest as BUILD
 
+ENV NODE_OPTIONS=--openssl-legacy-provider
 WORKDIR /build
 COPY package.json package-lock.json ./
 RUN npm install
