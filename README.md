@@ -1,9 +1,9 @@
 
 # Yeet Wars
 
-This is a heavily modified fork of a [pure python core war implementation](https://github.com/rodrigosetti/corewar) of core wars ([Wikipedia article](http://en.wikipedia.org/wiki/Core_War)).  
-The key differences are:
-* Yeet Wars instructions are assembled into 4 byte fixed width instructions and execute on a virtual memory space
+This is a heavily modified fork of a [pure python core war implementation](https://github.com/rodrigosetti/corewar) of core wars ([Wikipedia article](http://en.wikipedia.org/wiki/Core_War)), originally written for the [2019 CSAW finals](https://github.com/osirislab/CSAW-CTF-2019-Finals/tree/master/misc). 
+The key differences from core wars are:
+* Yeet Wars instructions are assembled into 4 byte fixed width instructions and execute in a virtual memory space (core wars instructions are maintained in a separate data structure from "memory")
 * Yeet Wars is intended to be played in real time
 * Yeet Wars is score based
 * In Yeet Wars, players are never completely eliminated for the duration of the game
@@ -11,7 +11,8 @@ The key differences are:
 # How To Play
 At the start of a yeet wars game, memory is initialized to null bytes and nothing starts out in memory (the 'core'), which is some predefined length (default is 16384 bytes). Players are loaded in but do not have any active threads.  
 At any point in time, players in the game can "stage" a snippet of assembly limited to a certain amount of lines (default 50). At a regular interval determined by the player's player id, that player's staging payload will be assembled and loaded into a random offset in the core that is divisible by 200, and a new thread will be spawned for that player at the beginning of the payload. If the player already has more than the maximum configured amount of threads (default 10), their oldest thread will be killed to make space.  
-Staging payloads are loaded in every N 'ticks' (default 30), where one tick is the completion of one execution cycle for every thread that was in the thread pool. To allow for player reactions, each tick takes N seconds to complete (default 20), with each cycle taking an equal fraction of that time to compute.  
+A maximum of one staged payload will be loaded into memory every tick, where one tick is the completion of one execution cycle for every thread that was in the thread pool. Each tick is considered one player's "turn" to load in a payload. If they have nothing staged, nothing will be loaded in for that tick. The frequency at which payloads can be staged can be reduced by increasing the "ticks_per_stage", which will make it such that each player's payload will only be staged every Nth turn.
+Each tick takes N seconds to complete (default 1).  
 For every thread that a player owns, they will receive 1 point every time that thread executes a cycle.  
   
 # Yeet Assembly
@@ -64,7 +65,7 @@ YEET #0, #4
 Finally, any addressing that goes out of the core loops back to the beginning, because all numbers in yeet wars are unsigned. For example, if the core were 100 bytes long and `YEET $255, $150` is executed, then core[50] will be set to 0xFF
   
 # Quick Setup
-Make sure python is python2:  
+Make sure python is python3:  
 ```
 pip install -r requirements.txt
 cd client
@@ -73,6 +74,7 @@ npm start&
 cd ../
 YEET_CONFIG_FILE=sample_config.json python server/server.py
 ```
+Alternatively, run `run.sh` in the root directory with docker installed and it'll start up separate containers for the backend and frontend servers. Make sure to point the config file in the root directory dockerfile to whatever config you want to deploy.
 
 FAQ:  
 **Your code is bad**  
