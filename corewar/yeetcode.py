@@ -64,7 +64,7 @@ def assemble(str_iterable):
     instrs = parse(str_iterable)
     binary_blob = bytearray()
     for instr in instrs:
-        binary_blob += instr if isinstance(instr, str) else instr.mcode
+        binary_blob += instr if isinstance(instr, (str, bytes, bytearray)) else instr.mcode
     return binary_blob
 
 def disassemble(byte_arr):
