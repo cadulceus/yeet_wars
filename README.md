@@ -48,14 +48,15 @@ For immediate and relative instructions, the value is encoded in the 2nd byte of
 IMMEDIATE         = 0   # immediate (Note that if an instruction expecting an address is given an immediate value, the immediate is treated as an absolute address). The symbol for immediate is "$"  
 RELATIVE          = 1   # relative. The symbol for relative is "#"  
 REGISTER_DIRECT   = 2   # Register direct. The symbol for register direct is "%"  
-REGISTER_INDIRECT = 3   # Register indirect (value of the register is treated as a pointer). The symbol fo register indirect is "["
+REGISTER_INDIRECT = 3   # Register indirect (value of the register is treated as a pointer). The symbol for register indirect is "["
 ```
 The addressing mode of an operand is prefixed to the value, for example `YEET #12, %XD` transfers the 4 bytes at PC + 12 into XD, or `YOINK $4, [DX` adds 4 to the address pointed to be DX
 Syscall numbers:  
 ```
 TRANSFER_OWNERSHIP      = 1 # transfer ownership of the current thread to the player ID specified by DX, up to a maximum of 1.5x the max thread count
 LOCATE_NEAREST_THREAD   = 2 # return the location of the nearest thread of a different owner in DX to a maximum distance of 80 bytes  
-LOCATE_RANDOM_THREAD    = 3 # return the location of a random active thread in DX  
+LOCATE_RANDOM_THREAD    = 3 # return the location of a random active thread in DX 
+RANDOM_INT              = 4 # returns a random value in DX
 ```
 Additionally, the assembler will allow for inline bytes, for example:  
 ```
