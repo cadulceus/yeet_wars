@@ -351,10 +351,10 @@ class MARS(object):
                 thread.dx = ERROR_CODE
             
         elif num == LOCATE_NEAREST_THREAD:
-            closest_distance = self.core.size
-            max_distance = 50
-            closest_pc = None
             all_threads = self.thread_pool + self.next_tick_pool
+            closest_distance = self.core.size
+            max_distance = 256
+            closest_pc = None
             for t in all_threads:
                 curr_distance = max(t.pc, thread.pc) - min(t.pc, thread.pc)
                 if curr_distance < closest_distance and curr_distance <= max_distance and t.owner != thread.owner:
@@ -368,7 +368,9 @@ class MARS(object):
         elif num == LOCATE_RANDOM_THREAD:
             all_threads = self.thread_pool + self.next_tick_pool
             all_threads.append(thread)
-            thread.dx = choice(all_threads).pc
+            max_distance = 1024
+            in_range = [t for t in all_threads if max(t.pc, thread.pc) - min(t.pc, thread.pc) <= max_distance]
+            thread.dx = choice(in_range).pc
             
         elif num == RANDOM_INT:
             thread.dx = randint(0, WORD_MAX)

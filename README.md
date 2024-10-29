@@ -54,8 +54,8 @@ The addressing mode of an operand is prefixed to the value, for example `YEET #1
 Syscall numbers:  
 ```
 TRANSFER_OWNERSHIP      = 1 # transfer ownership of the current thread to the player ID specified by DX, up to a maximum of 1.5x the max thread count
-LOCATE_NEAREST_THREAD   = 2 # return the location of the nearest thread of a different owner in DX to a maximum distance of 80 bytes  
-LOCATE_RANDOM_THREAD    = 3 # return the location of a random active thread in DX 
+LOCATE_NEAREST_THREAD   = 2 # return the location of the nearest thread of a different owner in DX to a maximum distance of 256 bytes  
+LOCATE_RANDOM_THREAD    = 3 # return the location of a random active thread in DX to a maximum distance of 1024 bytes
 RANDOM_INT              = 4 # returns a random value in DX
 ```
 Additionally, the assembler will allow for inline bytes, for example:  
