@@ -218,7 +218,7 @@ class InstructionTests(unittest.TestCase):
         runtime.thread_pool = []
         runtime.next_tick_pool = []
         runtime.spawn_new_thread(Thread(0, LOCATE_NEAREST_THREAD, 0, 0))
-        runtime.spawn_new_thread(Thread(51, LOCATE_NEAREST_THREAD, 0, 1))
+        runtime.spawn_new_thread(Thread(257, LOCATE_NEAREST_THREAD, 0, 1))
         runtime.step()
         self.assertEqual(runtime.next_tick_pool[-1].pc, 4)
         self.assertEqual(runtime.next_tick_pool[-1].dx_bytes, b"teey")
