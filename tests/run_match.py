@@ -184,40 +184,41 @@ class InstructionTests(unittest.TestCase):
         runtime.core[0] = initial_core
         
         runtime.spawn_new_thread(Thread(0, RANDOM_INT, 0, 0))
-        runtime.spawn_new_thread(Thread(0, LOCATE_NEAREST_THREAD, 0, 0))
         runtime.spawn_new_thread(Thread(0, TRANSFER_OWNERSHIP, 42, 0)) # attempt to transfer to non existent player
         runtime.spawn_new_thread(Thread(0, TRANSFER_OWNERSHIP, 69, 0)) # transfer ownership from yeet to teey
-        runtime.step()
-        self.assertEqual(runtime.next_tick_pool[-1].pc, 4)
-        self.assertEqual(runtime.next_tick_pool[-1].owner, 69)
+        runtime.spawn_new_thread(Thread(0, LOCATE_NEAREST_THREAD, 0, 0))
+        runtime.step() #random_int
         runtime.step()
         self.assertEqual(runtime.next_tick_pool[-1].pc, 4)
         self.assertEqual(runtime.next_tick_pool[-1].owner, 0)
         self.assertEqual(runtime.next_tick_pool[-1].dx_bytes, b"teey")
         runtime.step()
         self.assertEqual(runtime.next_tick_pool[-1].pc, 4)
+        self.assertEqual(runtime.next_tick_pool[-1].owner, 69)
+        runtime.step()
+        self.assertEqual(runtime.next_tick_pool[-1].pc, 4)
         self.assertEqual(runtime.next_tick_pool[-1].dx, 4)
         runtime.thread_pool = []
         runtime.next_tick_pool = []
         
-        runtime.spawn_new_thread(Thread(50, LOCATE_NEAREST_THREAD, 0, 1))
-        runtime.spawn_new_thread(Thread(20, LOCATE_NEAREST_THREAD, 0, 1))
-        runtime.spawn_new_thread(Thread(10, LOCATE_NEAREST_THREAD, 0, 0))
         runtime.spawn_new_thread(Thread(0, LOCATE_NEAREST_THREAD, 0, 0))
+        runtime.spawn_new_thread(Thread(10, LOCATE_NEAREST_THREAD, 0, 0))
+        runtime.spawn_new_thread(Thread(20, LOCATE_NEAREST_THREAD, 0, 1))
+        runtime.spawn_new_thread(Thread(50, LOCATE_NEAREST_THREAD, 0, 1))
         runtime.step()
         self.assertEqual(runtime.next_tick_pool[-1].pc, 4)
         self.assertEqual(runtime.next_tick_pool[-1].dx, 20)
         runtime.thread_pool = []
         runtime.next_tick_pool = []
-        runtime.spawn_new_thread(Thread(10, LOCATE_NEAREST_THREAD, 0, 0))
         runtime.spawn_new_thread(Thread(0, LOCATE_NEAREST_THREAD, 0, 0))
+        runtime.spawn_new_thread(Thread(10, LOCATE_NEAREST_THREAD, 0, 0))
         runtime.step()
         self.assertEqual(runtime.next_tick_pool[-1].pc, 4)
         self.assertEqual(runtime.next_tick_pool[-1].dx_bytes, b"teey")
         runtime.thread_pool = []
         runtime.next_tick_pool = []
-        runtime.spawn_new_thread(Thread(51, LOCATE_NEAREST_THREAD, 0, 1))
         runtime.spawn_new_thread(Thread(0, LOCATE_NEAREST_THREAD, 0, 0))
+        runtime.spawn_new_thread(Thread(51, LOCATE_NEAREST_THREAD, 0, 1))
         runtime.step()
         self.assertEqual(runtime.next_tick_pool[-1].pc, 4)
         self.assertEqual(runtime.next_tick_pool[-1].dx_bytes, b"teey")
