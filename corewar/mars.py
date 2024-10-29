@@ -33,7 +33,7 @@ EVENT_B_ARITH  = 12
 
 class yeetTimeException(Exception):
     def __init__(self, message: str, thread: Thread, instr: Instruction):
-        self.message = "Emulator Runtime Exception (%s) - thread: %s owner: %s Instruction: %s" % (message, thread.id, thread.owner, str(hexlify(instr.mcode), 'UTF-8'))
+        self.message = "Emulator Runtime Exception (%s) - thread: %s Instruction: %s" % (message, thread, instr)
 
     def __str__(self):
         return self.message
@@ -394,7 +394,7 @@ class MARS(object):
             thread.id = self.thread_counter
             self.thread_counter += 1
         self.players[thread.owner].threads.append(thread.id)
-        self.thread_pool.insert(0, thread)
+        self.thread_pool.append(thread)
         self.update_thread_event_handler(thread.id, thread.pc, self.players[thread.owner].color)
         
     def tick(self):

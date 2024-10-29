@@ -151,8 +151,8 @@ class Engine(object):
         if len(self.mars.players[player_id].threads) > self.mars.max_processes:
             self.mars.kill_oldest_thread(player_id)
         
-        self.runtime_event_handler("Loading new thread for %s: \n$ %s" % \
-            (self.players[player_id].name, "\n$ ".join(self.staged_payloads[player_id][1])))
+        self.runtime_event_handler("Loading new thread for %s at pc %i: \n$ %s" % \
+            (self.players[player_id].name, load_idx, "\n$ ".join(self.staged_payloads[player_id][1])))
         
         self.save_payload_to_disk(self.staged_payloads[player_id])
         self.staged_payloads[player_id] = []
