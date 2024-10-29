@@ -5,6 +5,7 @@ from copy import copy, deepcopy
 from random import randint, shuffle, choice
 import operator, struct
 
+from binascii import hexlify
 from .core import Core
 from time import sleep
 from .yeetcode import *
@@ -31,8 +32,11 @@ EVENT_A_ARITH  = 11
 EVENT_B_ARITH  = 12
 
 class yeetTimeException(Exception):
-    def __init__(self, message, thread, instr):
-        self.message = "Emulator Runtime Exception (%s) - thread: %s Instruction: %s" % (message, thread, instr)
+    def __init__(self, message: str, thread: Thread, instr: Instruction):
+        self.message = "Emulator Runtime Exception (%s) - thread: %s owner: %s Instruction: %s" % (message, thread.id, thread.owner, str(hexlify(instr.mcode), 'UTF-8'))
+
+    def __str__(self):
+        return self.message
 
 class MARS(object):
     """The MARS. Encapsulates a simulation.
@@ -365,13 +369,12 @@ class MARS(object):
             all_threads = self.thread_pool + self.next_tick_pool
             all_threads.append(thread)
             thread.dx = choice(all_threads).pc
+            
+        elif num == RANDOM_INT:
+            thread.dx = randint(0, WORD_MAX)
                 
         else:
             thread.dx = ERROR_CODE
-            
-        thread.pc = (thread.pc + 4) % self.core.size
-        self.next_tick_pool.append(thread)
-        self.update_thread_event_handler(thread.id, thread.pc, self.players[thread.owner].color)
 
     def spawn_thread_from_parent(self, pc, parent):
         """Create a new thread given a parent thread and place it in the next tick's thread pool.
@@ -430,9 +433,9 @@ class MARS(object):
         # copy the current instruction to the instruction register
         try:
             if (instr.a_mode == REGISTER_DIRECT or instr.a_mode == REGISTER_INDIRECT) and instr.a_number not in [0, 1]:
-                raise yeetTimeException("a_number is not within the range of valid registers", instr, thread)
+                raise yeetTimeException("a_number is not within the range of valid registers", thread, instr)
             if (instr.b_mode == REGISTER_DIRECT or instr.b_mode == REGISTER_INDIRECT) and instr.b_number not in [0, 1]:
-                raise yeetTimeException("b_number is not within the range of valid registers", instr , thread)
+                raise yeetTimeException("b_number is not within the range of valid registers", thread, instr)
             
             if opc == NOPE:
                 # Not technically necessary, but might as well be explicit
@@ -479,7 +482,7 @@ class MARS(object):
                     a = self.get_a_int(instr, thread) - 1
                 else: 
                     # Immediates are treated as absolute addresses
-                    a = struct.unpack(">I", self.core[instr.a_number : instr.a_number + 4])[0] - 1
+                    a = struct.unpack(">I", self.core[instr.a_number : instr.a_number + INSTRUCTION_WIDTH])[0] - 1
                     
                 if a < 0:
                     a = WORD_MAX - 1
@@ -512,7 +515,6 @@ class MARS(object):
                     
             elif opc == YEETCALL:
                 self.syscall_handler(thread)
-                return
             
             else:
                 raise yeetTimeException("Invalid instruction", thread, instr)

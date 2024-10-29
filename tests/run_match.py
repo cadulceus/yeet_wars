@@ -31,6 +31,15 @@ class InstructionTests(unittest.TestCase):
         runtime.next_tick_pool = [Thread(0, 0, b'\x00\x00\x00\x0C', 0)]
         runtime.step()
         self.assertEqual(runtime.core[80:84], b'YEET')
+
+    def test_yeetcode_assembler(self):
+        mem = Core()
+        runtime = MARS(mem, players={0: Player("Test", 0, "Token")})
+        raw_instruction = hex(unpack('>I', parse(["YEET #0, #4"])[0].mcode)[0]) # should look something like 0x15000004
+        runtime.core[0] = parse([raw_instruction])[0]
+        runtime.spawn_new_thread(Thread(0, 0, 0, 0))
+        runtime.step()
+        self.assertEqual(runtime.core[:8], b'\x15\x00\x00\x04\x15\x00\x00\x04')
         
     def test_yeet(self):
         mem = Core()
@@ -174,6 +183,7 @@ class InstructionTests(unittest.TestCase):
             
         runtime.core[0] = initial_core
         
+        runtime.spawn_new_thread(Thread(0, RANDOM_INT, 0, 0))
         runtime.spawn_new_thread(Thread(0, LOCATE_NEAREST_THREAD, 0, 0))
         runtime.spawn_new_thread(Thread(0, TRANSFER_OWNERSHIP, 42, 0)) # attempt to transfer to non existent player
         runtime.spawn_new_thread(Thread(0, TRANSFER_OWNERSHIP, 69, 0)) # transfer ownership from yeet to teey
